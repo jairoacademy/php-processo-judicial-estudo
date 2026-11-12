@@ -5,14 +5,14 @@ Projeto de estudo em **PHP 8** sobre o domínio de **processo judicial eletrôni
 > **Aviso.** Projeto pessoal e independente, **sem vínculo** com tribunais, com o CNJ ou com qualquer sistema judicial existente. Não contém código de terceiros, nem de sistemas de tribunais, nem de frameworks proprietários. A arquitetura em camadas é um padrão comum e foi inspirada na documentação pública do SEI (manual de módulos, disponível no Portal do Software Público); as regras de domínio seguem normas públicas (CNJ, CPC). Nomes de sistemas e órgãos pertencem aos seus respectivos titulares. Onde algo é suposição, está marcado como tal.
 
 ## Como rodar com Docker (recomendado)
-Só precisa de Docker. Sobe três containers: `php` (PHP-FPM 8.4 com Xdebug), `nginx` (porta 8080) e `mysql` (8.4).
+Só precisa de Docker. Sobe três containers: `php` (PHP-FPM 8.4 com Xdebug), `nginx` (porta 8090) e `mysql` (8.4).
 ```
 cp .env.example .env
 docker compose up -d --build
 docker compose exec php php tests/run.php   # 23 verificações (CNJ, CPF/CNPJ, prazos, rollback, filtros do DTO)
 docker compose exec php php demo.php        # 50 transações em loop x 1 transação envolvente
 ```
-Interface web: http://localhost:8080/?acao=processo_listar
+Interface web: http://localhost:8090/?acao=processo_listar
 
 | Arquivo | Papel |
 |---|---|
@@ -28,7 +28,7 @@ O banco da aplicação vem da variável `DB_DSN` (vazia = SQLite em `data/estudo
 ```
 php tests/run.php
 php demo.php
-php -S localhost:8080 -t public    # servidor embutido, só para desenvolvimento
+php -S localhost:8090 -t public    # servidor embutido, só para desenvolvimento
 ```
 
 ## Arquitetura
