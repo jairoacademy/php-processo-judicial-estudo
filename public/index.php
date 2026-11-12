@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 // Front controller no estilo controlador.php?acao=<entidade>_<acao>
 // Rodar: php -S localhost:8090 -t public
-require __DIR__ . '/../src/bootstrap.php';
+require __DIR__ . '/../vendor/autoload.php';
 
 use ProcessoJudicialEstudo\Evento\EventoDTO;
 use ProcessoJudicialEstudo\Evento\EventoRN;

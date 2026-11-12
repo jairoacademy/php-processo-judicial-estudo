@@ -1,0 +1,31 @@
+{
+    "name": "jairoacademy/php-processo-judicial-estudo",
+    "description": "Projeto de estudo em PHP 8 sobre o domínio de processo judicial eletrônico",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": "^8.4",
+        "ext-pdo": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "ProcessoJudicialEstudo\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ProcessoJudicialEstudo\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test:unit": "phpunit --testsuite unit",
+        "test:integration": "phpunit --testsuite integration"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^13.4"
+    }
+}

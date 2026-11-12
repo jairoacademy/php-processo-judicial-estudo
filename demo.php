@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 // php demo.php  -> mostra a armadilha de chamar método Controlado dentro de loop
-require __DIR__ . '/src/bootstrap.php';
+require __DIR__ . '/vendor/autoload.php';
 
 use ProcessoJudicialEstudo\Nucleo\Banco;
 use ProcessoJudicialEstudo\Parte\ParteDTO;
