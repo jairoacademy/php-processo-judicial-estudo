@@ -20,12 +20,35 @@
     "scripts": {
         "test": "phpunit",
         "test:unit": "phpunit --testsuite unit",
-        "test:integration": "phpunit --testsuite integration"
+        "test:integration": "phpunit --testsuite integration",
+        "stan": "phpstan analyse --no-progress",
+        "cs": "php-cs-fixer check --diff",
+        "cs:fix": "php-cs-fixer fix",
+        "check": [
+            "@cs",
+            "@stan",
+            "@test"
+        ]
     },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "phpstan/extension-installer": true
+        }
     },
     "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "phpstan/extension-installer": "^1.4",
+        "phpstan/phpstan": "^2.3",
+        "phpstan/phpstan-phpunit": "^2.1",
+        "phpstan/phpstan-strict-rules": "^2.1",
         "phpunit/phpunit": "^13.4"
+    },
+    "scripts-descriptions": {
+        "test": "Roda todas as suítes do PHPUnit",
+        "stan": "Análise estática com PHPStan no nível máximo",
+        "cs": "Verifica o estilo de código (PER-CS) sem alterar arquivos",
+        "cs:fix": "Corrige o estilo de código",
+        "check": "Estilo, análise estática e testes: o mesmo que o CI roda"
     }
 }

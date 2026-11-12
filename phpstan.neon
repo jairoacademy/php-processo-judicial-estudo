@@ -1,0 +1,16 @@
+parameters:
+    level: max
+    paths:
+        - src
+        - tests
+        - public
+        - demo.php
+    strictRules:
+        # PHPUnit documenta $this->assertX(); manter o estilo da documentação
+        dynamicCallOnStaticMethod: false
+    ignoreErrors:
+        -
+            # O despacho Conectado/Controlado do núcleo é, por definição, uma chamada dinâmica
+            identifier: method.dynamicName
+            path: src/Nucleo/NucleoRN.php
+            count: 2
