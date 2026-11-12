@@ -39,12 +39,20 @@ final class Banco
         if ($this->pdo !== null) {
             return;
         }
-        $dsn = self::$dsn !== '' ? self::$dsn : 'sqlite:' . dirname(__DIR__, 2) . '/data/estudo.sqlite';
-        $this->pdo = new PDO($dsn, null, null, [
+        // Prioridade: configurar() (testes, demo) > variável de ambiente DB_DSN > SQLite local
+        $dsn = self::$dsn !== '' ? self::$dsn : (string) getenv('DB_DSN');
+        if ($dsn === '') {
+            $dsn = 'sqlite:' . dirname(__DIR__, 2) . '/data/estudo.sqlite';
+        }
+        $usuario = getenv('DB_USER') ?: null;
+        $senha = getenv('DB_PASSWORD') ?: null;
+        $this->pdo = new PDO($dsn, $usuario, $senha, [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
-        $this->pdo->exec('PRAGMA foreign_keys = ON');
+        if ($this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            $this->pdo->exec('PRAGMA foreign_keys = ON');
+        }
         $this->criarEsquema();
     }
 
