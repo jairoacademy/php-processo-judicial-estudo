@@ -1,0 +1,8 @@
+data/*.sqlite
+data/*.sqlite-journal
+.idea/
+.vscode/
+vendor/
+
+# Notas pessoais de estudo; ficam fora do repositório
+docs/
