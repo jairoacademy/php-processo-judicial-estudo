@@ -4,13 +4,32 @@ Projeto de estudo em **PHP 8** sobre o domínio de **processo judicial eletrôni
 
 > **Aviso.** Projeto pessoal e independente, **sem vínculo** com tribunais, com o CNJ ou com qualquer sistema judicial existente. Não contém código de terceiros, nem de sistemas de tribunais, nem de frameworks proprietários. A arquitetura em camadas é um padrão comum e foi inspirada na documentação pública do SEI (manual de módulos, disponível no Portal do Software Público); as regras de domínio seguem normas públicas (CNJ, CPC). Nomes de sistemas e órgãos pertencem aos seus respectivos titulares. Onde algo é suposição, está marcado como tal.
 
-## Como rodar (PHP 8.1+; usa SQLite, sem instalar nada)
+## Como rodar com Docker (recomendado)
+Só precisa de Docker. Sobe três containers: `php` (PHP-FPM 8.4 com Xdebug), `nginx` (porta 8080) e `mysql` (8.4).
 ```
-php tests/run.php                  # 23 verificações (CNJ, CPF/CNPJ, prazos, rollback, filtros do DTO)
-php demo.php                       # 50 transações em loop x 1 transação envolvente
-php -S localhost:8080 -t public    # interface web: ?acao=processo_listar
+cp .env.example .env
+docker compose up -d --build
+docker compose exec php php tests/run.php   # 23 verificações (CNJ, CPF/CNPJ, prazos, rollback, filtros do DTO)
+docker compose exec php php demo.php        # 50 transações em loop x 1 transação envolvente
 ```
-Para usar MySQL, troque o DSN em `Banco::configurar()` (o esquema usa SQL simples; ajuste `AUTOINCREMENT` para `AUTO_INCREMENT`).
+Interface web: http://localhost:8080/?acao=processo_listar
+
+| Arquivo | Papel |
+|---|---|
+| `compose.yaml` | Os três serviços, a rede entre eles e o volume do MySQL |
+| `docker/php/Dockerfile` | Imagem multi-stage: `base` (pdo_mysql, intl, opcache) e `dev` (Xdebug, UID do host) |
+| `docker/php/conf.d/` | `php.ini` comum e de desenvolvimento |
+| `docker/nginx/default.conf` | nginx entrega estáticos e repassa `.php` ao php-fpm por FastCGI (porta 9000) |
+| `.env.example` | Variáveis do ambiente; copie para `.env` (fora do git) |
+
+O banco da aplicação vem da variável `DB_DSN` (vazia = SQLite em `data/estudo.sqlite`). O esquema ainda é só SQLite; o MySQL já sobe e será adotado com migrations.
+
+## Como rodar sem Docker (PHP 8.1+)
+```
+php tests/run.php
+php demo.php
+php -S localhost:8080 -t public    # servidor embutido, só para desenvolvimento
+```
 
 ## Arquitetura
 Página (`public/index.php`) -> **RN** (regra de negócio) -> **BD** (acesso a dados) -> `Banco` (PDO). O tráfego entre camadas usa **DTOs**.
