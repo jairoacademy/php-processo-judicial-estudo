@@ -3,6 +3,7 @@ data/*.sqlite-journal
 .idea/
 .vscode/
 vendor/
+.phpunit.cache/
 .env
 
 # Notas pessoais de estudo; ficam fora do repositório
