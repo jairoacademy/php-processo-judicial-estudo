@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace ProcessoJudicialEstudo\Nucleo;
@@ -6,7 +7,7 @@ namespace ProcessoJudicialEstudo\Nucleo;
 /** Análogo ao NucleoException: encapsula a causa e acumula validações de negócio. */
 class NucleoException extends \RuntimeException
 {
-    /** @var string[] */
+    /** @var list<string> */
     private array $validacoes = [];
 
     public function adicionarValidacao(string $mensagem): void
@@ -19,7 +20,7 @@ class NucleoException extends \RuntimeException
         return $this->validacoes !== [];
     }
 
-    /** @return string[] */
+    /** @return list<string> */
     public function getValidacoes(): array
     {
         return $this->validacoes;

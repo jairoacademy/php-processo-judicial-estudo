@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace ProcessoJudicialEstudo\Nucleo;
@@ -6,14 +7,17 @@ namespace ProcessoJudicialEstudo\Nucleo;
 /**
  * Acesso a dados genérico guiado pelo DTO. Um BD por tabela (subclasses vazias).
  * Nomes de coluna vêm do DTO (nunca da entrada do usuário); valores sempre via bind.
+ *
+ * @template T of NucleoDTO
  */
 class NucleoBD
 {
-    public function __construct(protected Banco $banco)
-    {
-    }
+    public function __construct(protected Banco $banco) {}
 
-    /** @return NucleoDTO[] */
+    /**
+     * @param T $dto
+     * @return list<T>
+     */
     public function listar(NucleoDTO $dto): array
     {
         $cols = $dto->montar();
@@ -34,20 +38,24 @@ class NucleoBD
         }
         if ($dto->getNumMaxRegistrosRetorno() !== null) {
             $max = $dto->getNumMaxRegistrosRetorno();
-            $sql .= ' LIMIT ' . (int) $max . ' OFFSET ' . (int) ($dto->getNumPaginaAtual() * $max);
+            $sql .= ' LIMIT ' . $max . ' OFFSET ' . ($dto->getNumPaginaAtual() * $max);
         }
 
         $resultado = [];
         foreach ($this->banco->consultarSql($sql, $params) as $linha) {
             $obj = new ($dto::class)();
             foreach ($linha as $attr => $valor) {
-                $obj->{'set' . $attr}($valor);
+                $obj->definirValor($attr, $valor);
             }
             $resultado[] = $obj;
         }
         return $resultado;
     }
 
+    /**
+     * @param T $dto
+     * @return T|null
+     */
     public function consultar(NucleoDTO $dto): ?NucleoDTO
     {
         $dto->setNumMaxRegistrosRetorno(1);
@@ -58,9 +66,14 @@ class NucleoBD
     {
         $params = [];
         $sql = 'SELECT COUNT(*) AS n FROM ' . $dto->getStrNomeTabela() . $this->where($dto, $params);
-        return (int) $this->banco->consultarSql($sql, $params)[0]['n'];
+        $n = $this->banco->consultarSql($sql, $params)[0]['n'] ?? 0;
+        return is_numeric($n) ? (int) $n : 0;
     }
 
+    /**
+     * @param T $dto
+     * @return T
+     */
     public function cadastrar(NucleoDTO $dto): NucleoDTO
     {
         $cols = $dto->montar();
@@ -78,7 +91,7 @@ class NucleoBD
             'INSERT INTO ' . $dto->getStrNomeTabela() . ' (' . implode(', ', $campos) . ') VALUES (' . implode(', ', $marcas) . ')',
             $params
         );
-        $dto->{'set' . $pk}($this->banco->ultimoId());
+        $dto->definirValor($pk, $this->banco->ultimoId());
         return $dto;
     }
 
@@ -86,7 +99,7 @@ class NucleoBD
     {
         $cols = $dto->montar();
         $pk = $dto->pk();
-        if (!$dto->{'isSet' . $pk}()) {
+        if (!$dto->possuiValor($pk)) {
             throw new NucleoException('Alteração exige a chave primária.');
         }
         $sets = $params = [];
@@ -100,7 +113,7 @@ class NucleoBD
         if ($sets === []) {
             return 0;
         }
-        $params[':pk'] = $dto->{'get' . $pk}();
+        $params[':pk'] = $dto->obterValor($pk);
         return $this->banco->executarSql(
             'UPDATE ' . $dto->getStrNomeTabela() . ' SET ' . implode(', ', $sets) . ' WHERE ' . $cols[$pk] . ' = :pk',
             $params
@@ -117,6 +130,7 @@ class NucleoBD
         return $this->banco->executarSql('DELETE FROM ' . $dto->getStrNomeTabela() . $where, $params);
     }
 
+    /** @param array<string, mixed> $params */
     private function where(NucleoDTO $dto, array &$params): string
     {
         $cols = $dto->montar();
@@ -137,7 +151,7 @@ class NucleoBD
                 continue;
             }
             $k = ':w' . $i++;
-            $params[$k] = $oper === NucleoDTO::OPER_LIKE ? '%' . $valor . '%' : $valor;
+            $params[$k] = $oper === NucleoDTO::OPER_LIKE && is_scalar($valor) ? '%' . $valor . '%' : $valor;
             $partes[] = "$col $oper $k";
         }
         return $partes === [] ? '' : ' WHERE ' . implode(' AND ', $partes);

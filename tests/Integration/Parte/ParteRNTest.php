@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace ProcessoJudicialEstudo\Tests\Integration\Parte;
@@ -16,7 +17,7 @@ final class ParteRNTest extends IntegrationTestCase
     {
         $id = $this->cadastrarProcesso();
 
-        $parte = (new ParteRN())->cadastrar($this->novaParte($id, '529.982.247-25'));
+        $parte = new ParteRN()->cadastrar($this->novaParte($id, '529.982.247-25'));
 
         $this->assertSame(1, $parte->getNumIdParte());
     }
@@ -26,7 +27,7 @@ final class ParteRNTest extends IntegrationTestCase
     {
         $id = $this->cadastrarProcesso();
 
-        $e = $this->capturarNucleoException(fn() => (new ParteRN())->cadastrar($this->novaParte($id, '123')));
+        $e = $this->capturarNucleoException(fn() => new ParteRN()->cadastrar($this->novaParte($id, '123')));
 
         $this->assertTrue($e->contemValidacoes());
     }
@@ -36,7 +37,7 @@ final class ParteRNTest extends IntegrationTestCase
     {
         $this->expectException(NucleoException::class);
 
-        (new ParteRN())->cadastrar($this->novaParte(9999, '529.982.247-25'));
+        new ParteRN()->cadastrar($this->novaParte(9999, '529.982.247-25'));
     }
 
     private function novaParte(int $idProcesso, string $documento): ParteDTO

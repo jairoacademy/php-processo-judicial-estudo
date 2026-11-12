@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 // php demo.php  -> mostra a armadilha de chamar método Controlado dentro de loop
@@ -16,7 +17,7 @@ $banco = Banco::getInstance();
 
 $p = new ProcessoDTO();
 $p->setStrNumero(Cnj::montar(10, 2026))->setStrClasse('Execução Fiscal')->setStrAssunto('IPTU')->setStrOrgaoJulgador('Vara de Fazenda Pública');
-$p = (new ProcessoRN())->cadastrar($p);
+$p = new ProcessoRN()->cadastrar($p);
 
 echo "Transações após cadastrar processo (+ evento): {$banco->totalTransacoes}\n";
 
@@ -28,7 +29,7 @@ for ($i = 1; $i <= 50; $i++) {
     $parte->setNumIdProcesso($p->getNumIdProcesso())->setStrNome("Réu $i")->setStrPolo('P')->setStrTipo('REU');
     $rn->cadastrar($parte);
 }
-echo "Loop com chamada externa: " . ($banco->totalTransacoes - $antes) . " transações\n";
+echo 'Loop com chamada externa: ' . ($banco->totalTransacoes - $antes) . " transações\n";
 
 // MELHOR: abrir UMA transação em volta e chamar a RN dentro (entra na transação aberta)
 $antes = $banco->totalTransacoes;
@@ -44,4 +45,4 @@ try {
     $banco->cancelarTransacao();
     throw $e;
 }
-echo "Loop dentro de uma transação: " . ($banco->totalTransacoes - $antes) . " transação\n";
+echo 'Loop dentro de uma transação: ' . ($banco->totalTransacoes - $antes) . " transação\n";

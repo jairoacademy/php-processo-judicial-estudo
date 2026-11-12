@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace ProcessoJudicialEstudo\Nucleo;
@@ -46,14 +47,15 @@ abstract class NucleoDTO
     /** @return array<string, string> atributo => coluna */
     abstract public function montar(): array;
 
+    /** @param array<int, mixed> $args */
     public function __call(string $nome, array $args): mixed
     {
-        if (!preg_match('/^(setOrd|set|get|ret|isSet|unSet)([A-Z]\w*)$/', $nome, $m)) {
+        if (preg_match('/^(setOrd|set|get|ret|isSet|unSet)([A-Z]\w*)$/', $nome, $m) !== 1) {
             throw new \BadMethodCallException("Método inexistente: $nome");
         }
         [, $acao, $attr] = $m;
         if (!isset($this->montar()[$attr])) {
-            throw new \BadMethodCallException("Atributo inexistente em " . static::class . ": $attr");
+            throw new \BadMethodCallException('Atributo inexistente em ' . static::class . ": $attr");
         }
         switch ($acao) {
             case 'set':
@@ -76,11 +78,28 @@ abstract class NucleoDTO
                 $this->retorno[$attr] = true;
                 return $this;
             case 'setOrd':
-                $dir = strtoupper((string) ($args[0] ?? 'ASC'));
-                $this->ordem[$attr] = $dir === 'DESC' ? 'DESC' : 'ASC';
+                $dir = $args[0] ?? 'ASC';
+                $this->ordem[$attr] = is_string($dir) && strtoupper($dir) === 'DESC' ? 'DESC' : 'ASC';
                 return $this;
         }
-        return null;
+    }
+
+    /** Lê o valor de um atributo pelo nome (uso interno do núcleo, sem chamada dinâmica). */
+    public function obterValor(string $atributo): mixed
+    {
+        return $this->valores[$atributo] ?? null;
+    }
+
+    /** Grava o valor de um atributo pelo nome (uso interno do núcleo, sem chamada dinâmica). */
+    public function definirValor(string $atributo, mixed $valor): static
+    {
+        $this->valores[$atributo] = $valor;
+        return $this;
+    }
+
+    public function possuiValor(string $atributo): bool
+    {
+        return array_key_exists($atributo, $this->valores);
     }
 
     public function setNumMaxRegistrosRetorno(?int $max): static

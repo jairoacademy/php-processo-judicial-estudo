@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace ProcessoJudicialEstudo\Util;
@@ -14,7 +15,7 @@ final class Documento
     public static function validarCpf(string $cpf): bool
     {
         $c = self::somenteDigitos($cpf);
-        if (strlen($c) !== 11 || preg_match('/^(\d)\1{10}$/', $c)) {
+        if (strlen($c) !== 11 || preg_match('/^(\d)\1{10}$/', $c) === 1) {
             return false;
         }
         for ($t = 9; $t < 11; $t++) {
@@ -33,7 +34,7 @@ final class Documento
     public static function validarCnpj(string $cnpj): bool
     {
         $c = self::somenteDigitos($cnpj);
-        if (strlen($c) !== 14 || preg_match('/^(\d)\1{13}$/', $c)) {
+        if (strlen($c) !== 14 || preg_match('/^(\d)\1{13}$/', $c) === 1) {
             return false;
         }
         foreach ([12, 13] as $t) {

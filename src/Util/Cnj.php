@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace ProcessoJudicialEstudo\Util;
@@ -23,7 +24,7 @@ final class Cnj
 
     public static function validar(string $numero): bool
     {
-        if (!preg_match(self::REGEX, $numero, $m)) {
+        if (preg_match(self::REGEX, $numero, $m) !== 1) {
             return false;
         }
         return self::calcularDv($m[1], $m[3], $m[4], $m[5], $m[6]) === $m[2];

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace ProcessoJudicialEstudo\Processo;
@@ -13,6 +14,13 @@ use ProcessoJudicialEstudo\Util\Cnj;
 /**
  * Domínio: Processo (autuação, distribuição, situação, sigilo).
  * Chamadas externas: $rn->cadastrar($dto), $rn->consultar($dto), $rn->listar($dto)...
+ *
+ * Métodos públicos despachados pelo NucleoRN::__call (declarados para o PHPStan e a IDE):
+ * @method ProcessoDTO cadastrar(ProcessoDTO $dto)
+ * @method void alterarSituacao(ProcessoDTO $dto)
+ * @method ProcessoDTO|null consultar(ProcessoDTO $dto)
+ * @method list<ProcessoDTO> listar(ProcessoDTO $dto)
+ * @method int contar(ProcessoDTO $dto)
  */
 class ProcessoRN extends NucleoRN
 {
@@ -32,12 +40,13 @@ class ProcessoRN extends NucleoRN
     protected function cadastrarControlado(ProcessoDTO $dto): ProcessoDTO
     {
         $ex = new NucleoException('Dados do processo inválidos.');
-        $numero = (string) ($dto->getStrNumero() ?? '');
+        $numero = $dto->getStrNumero() ?? '';
         if (!Cnj::validar($numero)) {
             $ex->adicionarValidacao('Número inválido (formato ou dígito verificador CNJ).');
         }
-        foreach (['StrClasse' => 'Classe', 'StrAssunto' => 'Assunto', 'StrOrgaoJulgador' => 'Órgão julgador'] as $attr => $rotulo) {
-            if (trim((string) $dto->{'get' . $attr}()) === '') {
+        $obrigatorios = ['Classe' => $dto->getStrClasse(), 'Assunto' => $dto->getStrAssunto(), 'Órgão julgador' => $dto->getStrOrgaoJulgador()];
+        foreach ($obrigatorios as $rotulo => $valor) {
+            if (trim($valor ?? '') === '') {
                 $ex->adicionarValidacao("$rotulo é obrigatório.");
             }
         }
@@ -50,9 +59,15 @@ class ProcessoRN extends NucleoRN
             $ex->lancarValidacoes();
         }
 
-        $dto->isSetStrSituacao() || $dto->setStrSituacao('A');
-        $dto->isSetStrSinSigilo() || $dto->setStrSinSigilo('N');
-        $dto->isSetDtaDistribuicao() || $dto->setDtaDistribuicao(date('Y-m-d'));
+        if (!$dto->isSetStrSituacao()) {
+            $dto->setStrSituacao('A');
+        }
+        if (!$dto->isSetStrSinSigilo()) {
+            $dto->setStrSinSigilo('N');
+        }
+        if (!$dto->isSetDtaDistribuicao()) {
+            $dto->setDtaDistribuicao(date('Y-m-d'));
+        }
 
         $this->bd()->cadastrar($dto);
 
@@ -60,7 +75,7 @@ class ProcessoRN extends NucleoRN
         $ev->setNumIdProcesso($dto->getNumIdProcesso());
         $ev->setStrTipo('DISTRIBUICAO');
         $ev->setStrDescricao('Distribuído ao órgão julgador: ' . $dto->getStrOrgaoJulgador());
-        (new EventoRN())->cadastrar($ev); // entra na transação aberta aqui
+        new EventoRN()->cadastrar($ev); // entra na transação aberta aqui
         return $dto;
     }
 
@@ -80,7 +95,7 @@ class ProcessoRN extends NucleoRN
         $ev->setNumIdProcesso($dto->getNumIdProcesso());
         $ev->setStrTipo($nova === 'B' ? 'BAIXA' : 'DECISAO');
         $ev->setStrDescricao('Situação alterada para: ' . self::SITUACOES[$nova]);
-        (new EventoRN())->cadastrar($ev);
+        new EventoRN()->cadastrar($ev);
     }
 
     protected function consultarConectado(ProcessoDTO $dto): ?ProcessoDTO
@@ -88,7 +103,7 @@ class ProcessoRN extends NucleoRN
         return $this->bd()->consultar($dto);
     }
 
-    /** @return ProcessoDTO[] */
+    /** @return list<ProcessoDTO> */
     protected function listarConectado(ProcessoDTO $dto): array
     {
         return $this->bd()->listar($dto);

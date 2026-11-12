@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace ProcessoJudicialEstudo\Tests\Integration\Nucleo;
@@ -27,7 +28,7 @@ final class NucleoDTOFiltroTest extends IntegrationTestCase
         $f = new ProcessoDTO();
         $f->setStrOrgaoJulgador(['2ª Vara Cível', '3ª Vara Cível'], NucleoDTO::OPER_IN)->setOrdStrNumero('DESC');
 
-        $lista = (new ProcessoRN())->listar($f);
+        $lista = new ProcessoRN()->listar($f);
 
         $this->assertCount(2, $lista);
         $this->assertSame(Cnj::montar(4, 2026), $lista[0]->getStrNumero());
@@ -42,7 +43,7 @@ final class NucleoDTOFiltroTest extends IntegrationTestCase
             ->setNumPaginaAtual(1)
             ->setOrdNumIdProcesso();
 
-        $this->assertCount(1, (new ProcessoRN())->listar($f));
+        $this->assertCount(1, new ProcessoRN()->listar($f));
     }
 
     #[Test]
@@ -52,9 +53,10 @@ final class NucleoDTOFiltroTest extends IntegrationTestCase
         $f = new ProcessoDTO();
         $f->setStrNumero($numero)->retStrNumero()->retStrClasse();
 
-        $p = (new ProcessoRN())->consultar($f);
+        $p = new ProcessoRN()->consultar($f);
 
-        $this->assertSame($numero, $p?->getStrNumero());
-        $this->assertNull($p?->getStrAssunto());
+        $this->assertNotNull($p);
+        $this->assertSame($numero, $p->getStrNumero());
+        $this->assertNull($p->getStrAssunto());
     }
 }

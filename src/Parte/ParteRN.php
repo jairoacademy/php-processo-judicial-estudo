@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace ProcessoJudicialEstudo\Parte;
@@ -10,7 +11,13 @@ use ProcessoJudicialEstudo\Processo\ProcessoDTO;
 use ProcessoJudicialEstudo\Processo\ProcessoRN;
 use ProcessoJudicialEstudo\Util\Documento;
 
-/** Domínio: Partes e representantes (polo ativo/passivo, advogado, MP, defensoria). */
+/**
+ * Domínio: Partes e representantes (polo ativo/passivo, advogado, MP, defensoria).
+ *
+ * Métodos públicos despachados pelo NucleoRN::__call (declarados para o PHPStan e a IDE):
+ * @method ParteDTO cadastrar(ParteDTO $dto)
+ * @method list<ParteDTO> listar(ParteDTO $dto)
+ */
 class ParteRN extends NucleoRN
 {
     public const POLOS = ['A' => 'Ativo', 'P' => 'Passivo', 'T' => 'Terceiro'];
@@ -38,7 +45,7 @@ class ParteRN extends NucleoRN
         if (!in_array($dto->getStrTipo(), self::TIPOS, true)) {
             $ex->adicionarValidacao('Tipo de parte inválido.');
         }
-        $doc = (string) ($dto->getStrDocumento() ?? '');
+        $doc = $dto->getStrDocumento() ?? '';
         if ($doc !== '' && !Documento::validar($doc)) {
             $ex->adicionarValidacao('CPF/CNPJ inválido.');
         }
@@ -46,7 +53,7 @@ class ParteRN extends NucleoRN
 
         $proc = new ProcessoDTO();
         $proc->setNumIdProcesso($dto->getNumIdProcesso())->retNumIdProcesso();
-        if ((new ProcessoRN())->consultar($proc) === null) { // RN chama RN, nunca o BD alheio
+        if (new ProcessoRN()->consultar($proc) === null) { // RN chama RN, nunca o BD alheio
             $ex->adicionarValidacao('Processo inexistente.');
             $ex->lancarValidacoes();
         }
@@ -56,7 +63,7 @@ class ParteRN extends NucleoRN
         return $this->bd()->cadastrar($dto);
     }
 
-    /** @return ParteDTO[] */
+    /** @return list<ParteDTO> */
     protected function listarConectado(ParteDTO $dto): array
     {
         return $this->bd()->listar($dto);
