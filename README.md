@@ -9,7 +9,8 @@ Só precisa de Docker. Sobe três containers: `php` (PHP-FPM 8.4 com Xdebug), `n
 ```
 cp .env.example .env
 docker compose up -d --build
-docker compose exec php php tests/run.php   # 23 verificações (CNJ, CPF/CNPJ, prazos, rollback, filtros do DTO)
+docker compose exec php composer install    # dependências (PHPUnit) e autoload PSR-4
+docker compose exec php composer test       # PHPUnit: suítes unit e integration
 docker compose exec php php demo.php        # 50 transações em loop x 1 transação envolvente
 ```
 Interface web: http://localhost:8090/?acao=processo_listar
@@ -17,16 +18,31 @@ Interface web: http://localhost:8090/?acao=processo_listar
 | Arquivo | Papel |
 |---|---|
 | `compose.yaml` | Os três serviços, a rede entre eles e o volume do MySQL |
-| `docker/php/Dockerfile` | Imagem multi-stage: `base` (pdo_mysql, intl, opcache) e `dev` (Xdebug, UID do host) |
+| `docker/php/Dockerfile` | Imagem multi-stage: `base` (pdo_mysql, intl, opcache) e `dev` (Xdebug, Composer, UID do host) |
 | `docker/php/conf.d/` | `php.ini` comum e de desenvolvimento |
 | `docker/nginx/default.conf` | nginx entrega estáticos e repassa `.php` ao php-fpm por FastCGI (porta 9000) |
 | `.env.example` | Variáveis do ambiente; copie para `.env` (fora do git) |
 
 O banco da aplicação vem da variável `DB_DSN` (vazia = SQLite em `data/estudo.sqlite`). O esquema ainda é só SQLite; o MySQL já sobe e será adotado com migrations.
 
-## Como rodar sem Docker (PHP 8.1+)
+## Testes
+PHPUnit, configurado em `phpunit.xml`, com ordem aleatória e falha em warnings e deprecations.
+
+| Suíte | Pasta | O que cobre |
+|---|---|---|
+| `unit` | `tests/Unit` | Número CNJ, CPF/CNPJ, prazo em dias úteis; sem banco |
+| `integration` | `tests/Integration` | RN + BD + banco (SQLite em memória, novo a cada teste): validações, rollback, transação em loop, filtros do DTO |
+
 ```
-php tests/run.php
+docker compose exec php composer test:unit
+docker compose exec php composer test:integration
+docker compose exec php vendor/bin/phpunit --filter CnjTest
+```
+
+## Como rodar sem Docker (PHP 8.4+ e Composer)
+```
+composer install
+composer test
 php demo.php
 php -S localhost:8090 -t public    # servidor embutido, só para desenvolvimento
 ```
