@@ -39,6 +39,19 @@ docker compose exec php composer test:integration
 docker compose exec php vendor/bin/phpunit --filter CnjTest
 ```
 
+## Qualidade de código
+| Ferramenta | Configuração | O que garante |
+|---|---|---|
+| PHPStan (nível `max` + `phpstan-strict-rules` + `phpstan-phpunit`) | `phpstan.neon` | Tipos corretos sem rodar o código; generics via PHPDoc (`NucleoBD<T>`) e métodos mágicos declarados com `@method` |
+| PHP-CS-Fixer (`@PER-CS`, sucessor da PSR-12, + migração para PHP 8.4) | `.php-cs-fixer.dist.php` | Estilo de código uniforme |
+
+```
+docker compose exec php composer check    # estilo + análise estática + testes
+docker compose exec php composer stan
+docker compose exec php composer cs       # só verifica
+docker compose exec php composer cs:fix   # corrige
+```
+
 ## Como rodar sem Docker (PHP 8.4+ e Composer)
 ```
 composer install
