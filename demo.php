@@ -2,7 +2,8 @@
 
 declare(strict_types=1);
 
-// php demo.php  -> mostra a armadilha de chamar método Controlado dentro de loop
+// php demo.php  -> mostra a armadilha de chamar método Controlado dentro de loop.
+// Grava no banco configurado no ambiente e apaga os próprios dados no final.
 require __DIR__ . '/vendor/autoload.php';
 
 use ProcessoJudicialEstudo\Nucleo\Banco;
@@ -12,11 +13,10 @@ use ProcessoJudicialEstudo\Processo\ProcessoDTO;
 use ProcessoJudicialEstudo\Processo\ProcessoRN;
 use ProcessoJudicialEstudo\Util\Cnj;
 
-Banco::configurar('sqlite::memory:');
 $banco = Banco::getInstance();
 
 $p = new ProcessoDTO();
-$p->setStrNumero(Cnj::montar(10, 2026))->setStrClasse('Execução Fiscal')->setStrAssunto('IPTU')->setStrOrgaoJulgador('Vara de Fazenda Pública');
+$p->setStrNumero(Cnj::montar(random_int(1_000_000, 9_999_999), 2026))->setStrClasse('Execução Fiscal')->setStrAssunto('IPTU')->setStrOrgaoJulgador('Vara de Fazenda Pública');
 $p = new ProcessoRN()->cadastrar($p);
 
 echo "Transações após cadastrar processo (+ evento): {$banco->totalTransacoes}\n";
@@ -46,3 +46,9 @@ try {
     throw $e;
 }
 echo 'Loop dentro de uma transação: ' . ($banco->totalTransacoes - $antes) . " transação\n";
+
+// Limpeza: remove o processo de demonstração e tudo que pende dele
+$id = ['id' => $p->getNumIdProcesso()];
+foreach (['evento', 'parte', 'processo'] as $tabela) {
+    $banco->executarSql("DELETE FROM $tabela WHERE id_processo = :id", $id);
+}

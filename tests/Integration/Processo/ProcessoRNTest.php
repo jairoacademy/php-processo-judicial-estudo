@@ -19,7 +19,7 @@ final class ProcessoRNTest extends IntegrationTestCase
     {
         $p = new ProcessoRN()->cadastrar($this->novoProcessoDTO(Cnj::montar(1, 2026)));
 
-        $this->assertSame(1, $p->getNumIdProcesso());
+        $this->assertGreaterThan(0, $p->getNumIdProcesso());
     }
 
     #[Test]

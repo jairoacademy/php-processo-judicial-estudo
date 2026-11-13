@@ -19,7 +19,7 @@ final class ParteRNTest extends IntegrationTestCase
 
         $parte = new ParteRN()->cadastrar($this->novaParte($id, '529.982.247-25'));
 
-        $this->assertSame(1, $parte->getNumIdParte());
+        $this->assertGreaterThan(0, $parte->getNumIdParte());
     }
 
     #[Test]
