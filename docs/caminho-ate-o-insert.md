@@ -2,11 +2,13 @@
 
 [Voltar ao README](../README.md)
 
-O que acontece desde o clique em **Distribuir** na tela de novo processo até o `COMMIT` no banco, passando pela `ProcessoRN`, pelo `NucleoRN::__call`, pelo `NucleoBD` e pelo `Banco`.
+O que acontece desde o clique em **Distribuir** na tela de novo processo até o `COMMIT` no banco, passando pela camada web (`Aplicacao` e controller), pela `ProcessoRN`, pelo `NucleoRN::__call`, pelo `NucleoBD` e pelo `Banco`.
 
 ## Visão geral
 ```
-public/index.php (case 'processo_cadastrar')
+public/index.php                             requisição PSR-7 montada a partir das superglobais
+  -> Aplicacao::atender                      confere o token CSRF; ?acao=processo_cadastrar + POST
+  -> ProcessoController::cadastrar           lê o formulário e preenche o DTO
   -> ProcessoRN::cadastrar($dto)            [não existe: __call]
      -> NucleoRN::__call                     BEGIN (nível 0 -> 1)
         -> ProcessoRN::cadastrarControlado
@@ -16,16 +18,21 @@ public/index.php (case 'processo_cadastrar')
            4. grava o processo               INSERT  (ProcessoBD::cadastrar -> NucleoBD)
            5. evento de distribuição         EventoRN::cadastrar -> __call (nível 1 -> 2) -> INSERT
         <- volta                              COMMIT (nível 1 -> 0)
-  <- header('Location: ...consultar&id=N')    redireciona para a tela do processo
+  <- 303 See Other, Location: ?acao=processo_consultar&id=N   + mensagem flash na sessão
 ```
 
-## 1. A tela monta o DTO
-No `public/index.php`, o `case 'processo_cadastrar'` lê o POST com `texto()`, preenche o DTO e chama a RN:
+## 1. A requisição chega ao controller
+O `public/index.php` monta uma requisição PSR-7 e a entrega a `Aplicacao::atender()` (`src/Web/Aplicacao.php`), que:
+- recusa com 400 um POST sem o token CSRF da sessão;
+- procura `processo_cadastrar` + POST na tabela de rotas e chama `ProcessoController::cadastrar`;
+- envolve a chamada num `try`, que transforma exceções em páginas de erro (422, 404 ou 500).
+
+O controller lê o formulário com os ajudantes da classe base `Controller`, preenche o DTO e chama a RN:
 ```php
-$p->setStrNumero(texto($_POST, 'numero'))->setStrClasse(...)->...;
-$p = $rnProcesso->cadastrar($p);
+$processo->setStrNumero($this->texto($requisicao, 'numero'))->setStrClasse(...)->...;
+$processo = new ProcessoRN()->cadastrar($processo);
 ```
-A tela não sabe nada de SQL nem de transação; ela só conhece a RN.
+O controller não sabe nada de SQL nem de transação; ele só conhece a RN.
 
 ## 2. Validações (`src/Processo/ProcessoRN.php:42-53`)
 ```php
@@ -83,7 +90,7 @@ O **mesmo objeto** `$dto` recebe o id e volta para a RN. Por isso a linha 75 da 
 `new EventoRN()->cadastrar($ev)` passa de novo pelo `__call`. O nível de transação vai para 2, não há `BEGIN`, e a `EventoRN` faz as próprias validações e o próprio `INSERT INTO evento`. Se o evento falhar, o processo também é desfeito: o `TransacaoTest::rollbackDesfazProcessoEEventoDeDistribuicao` prova isso.
 
 ## 8. Volta e commit
-O `cadastrarControlado` devolve o `$dto`. O `__call` chama `confirmarTransacao()`: o nível vai de 1 para 0, e o `COMMIT` é real. A tela redireciona para a consulta, no padrão PRG (POST, depois redirecionamento, depois GET), para que um F5 não cadastre o processo de novo.
+O `cadastrarControlado` devolve o `$dto`. O `__call` chama `confirmarTransacao()`: o nível vai de 1 para 0, e o `COMMIT` é real. O controller guarda a mensagem "Processo distribuído." na sessão (flash) e responde **303 See Other** para a consulta, no padrão PRG (POST, depois redirecionamento, depois GET), para que um F5 não cadastre o processo de novo. A mensagem aparece uma única vez, na página seguinte.
 
 ## Para ver o SQL de verdade passando
 Ligue o log geral do MySQL, cadastre um processo pela tela e veja as consultas:

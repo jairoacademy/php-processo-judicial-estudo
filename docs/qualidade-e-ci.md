@@ -13,7 +13,7 @@ Configurados em `phpunit.xml`: ordem aleatória, e qualquer warning, notice ou d
 | Suíte | Pasta | O que cobre |
 |---|---|---|
 | `unit` | `tests/Unit` | Número CNJ, CPF/CNPJ, prazo em dias úteis; sem banco |
-| `integration` | `tests/Integration` | RN + BD + MySQL real (banco `processo_test`, tabelas esvaziadas antes de cada teste): validações, rollback, transação em loop, filtros do DTO |
+| `integration` | `tests/Integration` | RN + BD + MySQL real (banco `processo_test`, tabelas esvaziadas antes de cada teste): validações, rollback, transação em loop, filtros do DTO; e as telas (`tests/Integration/Web`), com requisições PSR-7 montadas à mão, sem servidor: CSRF, PRG com flash, 404/405/422 e escape contra XSS |
 
 `composer test` aplica as migrations no banco de testes antes de rodar.
 

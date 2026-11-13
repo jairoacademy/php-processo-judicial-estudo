@@ -29,8 +29,8 @@ Para conferir estilo, análise estática e testes de uma vez: `docker compose ex
 
 ## Arquitetura
 ```
-public/index.php (página)  ->  RN (regra de negócio)  ->  BD (acesso a dados)  ->  Banco (PDO / MySQL)
-                           <-------------------- DTOs entre as camadas -------------------->
+Web (controllers + templates)  ->  RN (regra de negócio)  ->  BD (acesso a dados)  ->  Banco (PDO / MySQL)
+                               <-------------------- DTOs entre as camadas -------------------->
 ```
 
 | Arquivo | Conceito |
@@ -41,7 +41,9 @@ public/index.php (página)  ->  RN (regra de negócio)  ->  BD (acesso a dados) 
 | `src/Nucleo/Banco.php` | Singleton de PDO (MySQL, prepared statements reais) e controle de transação (aninhada "entra" na externa) |
 | `src/Processo/ProcessoRN.php` | Uma RN chama outra RN, nunca o BD alheio; o evento de distribuição entra na mesma transação |
 | `src/Util/` | Número CNJ (DV módulo 97), CPF/CNPJ, prazo em dias úteis |
-| `public/index.php` | Roteamento `?acao=entidade_acao`, CSRF, escape de saída |
+| `src/Web/Aplicacao.php` | Recebe a requisição (PSR-7): confere o CSRF, escolhe o controller pela tabela de rotas `?acao=entidade_acao` e transforma erros em páginas (422, 404, 405, 500) |
+| `src/Web/Controller/` | Controllers finos: leem a requisição, chamam a RN e respondem com uma página ou com um redirecionamento (PRG, mensagens flash) |
+| `templates/` | Telas em PHP puro, com escape de saída (`e()`) em todo valor variável |
 
 Armadilha demonstrada em `demo.php`: chamar um método transacional dentro de um loop abre uma transação por iteração (50 commits, e uma falha no meio deixa gravação parcial).
 
