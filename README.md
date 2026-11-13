@@ -1,4 +1,4 @@
-# php-processo-judicial-estudo
+# Processo Judicial · laboratório de arquitetura PHP
 
 [![CI](https://github.com/jairoacademy/php-processo-judicial-estudo/actions/workflows/ci.yml/badge.svg)](https://github.com/jairoacademy/php-processo-judicial-estudo/actions/workflows/ci.yml)
 
