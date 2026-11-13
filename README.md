@@ -11,8 +11,9 @@ Só precisa de Docker. Sobe três containers: `php` (PHP-FPM 8.4 com Xdebug), `n
 ```
 cp .env.example .env
 docker compose up -d --build
-docker compose exec php composer install    # dependências (PHPUnit) e autoload PSR-4
-docker compose exec php composer test       # PHPUnit: suítes unit e integration
+docker compose exec php composer install    # dependências e autoload PSR-4
+docker compose exec php composer db:migrate # cria as tabelas no MySQL
+docker compose exec php composer test       # PHPUnit: suítes unit e integration (banco processo_test)
 docker compose exec php php demo.php        # 50 transações em loop x 1 transação envolvente
 ```
 Interface web: http://localhost:8090/?acao=processo_listar
@@ -23,9 +24,25 @@ Interface web: http://localhost:8090/?acao=processo_listar
 | `docker/php/Dockerfile` | Imagem multi-stage: `base` (pdo_mysql, intl, opcache) e `dev` (Xdebug, Composer, UID do host) |
 | `docker/php/conf.d/` | `php.ini` comum e de desenvolvimento |
 | `docker/nginx/default.conf` | nginx entrega estáticos e repassa `.php` ao php-fpm por FastCGI (porta 9000) |
+| `docker/mysql/init/` | Script da primeira inicialização do MySQL: cria o banco de testes `processo_test` |
 | `.env.example` | Variáveis do ambiente; copie para `.env` (fora do git) |
 
-O banco da aplicação vem da variável `DB_DSN` (vazia = SQLite em `data/estudo.sqlite`). O esquema ainda é só SQLite; o MySQL já sobe e será adotado com migrations.
+## Banco de dados e migrations
+MySQL 8.4 (InnoDB, `utf8mb4_0900_ai_ci`). A conexão vem de `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` e `DB_PASSWORD` (`src/Nucleo/ConfiguracaoBanco.php`), lidas tanto pela aplicação (PDO) quanto pelas migrations (Doctrine DBAL).
+
+O esquema é versionado com **Doctrine Migrations**, em SQL puro (`migrations/`); a tabela `doctrine_migration_versions` guarda o que já foi aplicado. Uma migration aplicada nunca é alterada: mudanças entram numa migration nova.
+
+```
+docker compose exec php composer db:status     # aplicadas e pendentes
+docker compose exec php composer db:migrate    # aplica as pendentes
+docker compose exec php composer db:rollback   # desfaz a última
+```
+
+| Arquivo | Papel |
+|---|---|
+| `migrations.php` | Configuração (pasta das migrations; sem transação em volta, porque o MySQL faz commit implícito a cada DDL) |
+| `migrations-db.php` | Conexão DBAL a partir das mesmas variáveis de ambiente |
+| `migrations/Version20261113000001.php` | Esquema inicial: `processo`, `parte` e `evento`, com PK, FK, `CHECK` e índices nomeados (`pk_`, `ak_`, `fk_`, `ck_`, `i01_`) |
 
 ## Testes
 PHPUnit, configurado em `phpunit.xml`, com ordem aleatória e falha em warnings e deprecations.
@@ -33,7 +50,7 @@ PHPUnit, configurado em `phpunit.xml`, com ordem aleatória e falha em warnings 
 | Suíte | Pasta | O que cobre |
 |---|---|---|
 | `unit` | `tests/Unit` | Número CNJ, CPF/CNPJ, prazo em dias úteis; sem banco |
-| `integration` | `tests/Integration` | RN + BD + banco (SQLite em memória, novo a cada teste): validações, rollback, transação em loop, filtros do DTO |
+| `integration` | `tests/Integration` | RN + BD + MySQL real (banco `processo_test`, tabelas esvaziadas antes de cada teste): validações, rollback, transação em loop, filtros do DTO |
 
 ```
 docker compose exec php composer test:unit
@@ -59,14 +76,16 @@ O GitHub Actions (`.github/workflows/ci.yml`) roda a cada push na `main` e em ca
 
 | Job | O que faz |
 |---|---|
-| `qualidade` (PHP 8.4 e 8.5) | `composer validate`, `composer install` pelo lock, `composer audit`, PHP-CS-Fixer, PHPStan e PHPUnit |
+| `qualidade` (PHP 8.4 e 8.5, com MySQL 8.4 como service container) | `composer validate`, `composer install` pelo lock, `composer audit`, PHP-CS-Fixer, PHPStan, PHPUnit e migrations reversíveis (desfaz tudo e aplica de novo) |
 | `docker` | Constrói as imagens `base` e `dev` do `docker/php/Dockerfile` |
 
 O Dependabot (`.github/dependabot.yml`) abre PRs semanais com atualizações do Composer, das actions e da imagem Docker.
 
-## Como rodar sem Docker (PHP 8.4+ e Composer)
+## Como rodar sem Docker (PHP 8.4+, Composer e um MySQL 8)
+Defina as variáveis `DB_*` apontando para o seu MySQL e crie os bancos `processo` e `processo_test`.
 ```
 composer install
+composer db:migrate
 composer test
 php demo.php
 php -S localhost:8090 -t public    # servidor embutido, só para desenvolvimento
@@ -80,7 +99,7 @@ Página (`public/index.php`) -> **RN** (regra de negócio) -> **BD** (acesso a d
 | `src/Nucleo/NucleoDTO.php` | DTO como construtor de consultas: `set/get/ret/setOrd/isSet` por `__call`; `set` vira WHERE em consulta; operadores `IN`, `LIKE`, etc. |
 | `src/Nucleo/NucleoBD.php` | CRUD genérico guiado pelo DTO, valores sempre por `bind`, colunas só do DTO (nunca da entrada do usuário) |
 | `src/Nucleo/NucleoRN.php` | `__call` abre conexão (`Conectado`) ou conexão + transação (`Controlado`), com commit/rollback |
-| `src/Nucleo/Banco.php` | Singleton de PDO e controle de transação (aninhada "entra" na externa) |
+| `src/Nucleo/Banco.php` | Singleton de PDO (MySQL, prepared statements reais) e controle de transação (aninhada "entra" na externa) |
 | `src/Processo/ProcessoRN.php` | Uma RN chama outra RN, nunca o BD alheio; o evento de distribuição entra na mesma transação |
 | `src/Util/` | Número CNJ (DV módulo 97), CPF/CNPJ, prazo em dias úteis |
 | `public/index.php` | Roteamento `?acao=entidade_acao`, CSRF, escape de saída |
@@ -117,7 +136,7 @@ Legenda: **PADRÃO** = decorre de norma pública (CNJ, CPC) e é praticamente ce
 2. Documento com hash e juntada (upload seguro: tipo, tamanho, path traversal).
 3. Tabela de classes/assuntos com FK e JOIN montado pelo DTO.
 4. Audiência com detecção de conflito de agenda.
-5. Rodar em MySQL e estudar `EXPLAIN`, índices e `utf8mb4`.
+5. Índice para a busca por número (hoje `LIKE '%x%'` varre a tabela; avaliar busca por prefixo ou FULLTEXT).
 
 ## Licença
 MIT (ver `LICENSE`).
