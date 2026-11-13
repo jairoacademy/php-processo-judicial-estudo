@@ -5,6 +5,9 @@ parameters:
         - tests
         - public
         - demo.php
+        - migrations
+        - migrations.php
+        - migrations-db.php
     strictRules:
         # PHPUnit documenta $this->assertX(); manter o estilo da documentação
         dynamicCallOnStaticMethod: false

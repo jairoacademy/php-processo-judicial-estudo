@@ -5,11 +5,13 @@
     "license": "MIT",
     "require": {
         "php": "^8.4",
-        "ext-pdo": "*"
+        "ext-pdo": "*",
+        "doctrine/migrations": "^3.9"
     },
     "autoload": {
         "psr-4": {
-            "ProcessoJudicialEstudo\\": "src/"
+            "ProcessoJudicialEstudo\\": "src/",
+            "ProcessoJudicialEstudo\\Migrations\\": "migrations/"
         }
     },
     "autoload-dev": {
@@ -18,9 +20,22 @@
         }
     },
     "scripts": {
-        "test": "phpunit",
+        "test": [
+            "@db:test:prepare",
+            "phpunit"
+        ],
         "test:unit": "phpunit --testsuite unit",
-        "test:integration": "phpunit --testsuite integration",
+        "test:integration": [
+            "@db:test:prepare",
+            "phpunit --testsuite integration"
+        ],
+        "db:migrate": "doctrine-migrations migrate --no-interaction --allow-no-migration",
+        "db:status": "doctrine-migrations status",
+        "db:rollback": "doctrine-migrations migrate prev --no-interaction",
+        "db:test:prepare": [
+            "@putenv DB_NAME=processo_test",
+            "doctrine-migrations migrate --no-interaction --allow-no-migration --quiet"
+        ],
         "stan": "phpstan analyse --no-progress",
         "cs": "php-cs-fixer check --diff",
         "cs:fix": "php-cs-fixer fix",
@@ -49,6 +64,10 @@
         "stan": "Análise estática com PHPStan no nível máximo",
         "cs": "Verifica o estilo de código (PER-CS) sem alterar arquivos",
         "cs:fix": "Corrige o estilo de código",
-        "check": "Estilo, análise estática e testes: o mesmo que o CI roda"
+        "check": "Estilo, análise estática e testes: o mesmo que o CI roda",
+        "db:migrate": "Aplica as migrations pendentes no banco de desenvolvimento",
+        "db:status": "Mostra as migrations aplicadas e pendentes",
+        "db:rollback": "Desfaz a última migration aplicada",
+        "db:test:prepare": "Aplica as migrations no banco de testes (processo_test)"
     }
 }
