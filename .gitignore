@@ -7,5 +7,5 @@ vendor/
 .php-cs-fixer.cache
 .env
 
-# Notas pessoais de estudo; ficam fora do repositório
-docs/
+# Notas pessoais de estudo; ficam fora do repositório (o resto de docs/ é público)
+docs/privado/
