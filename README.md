@@ -1,5 +1,7 @@
 # php-processo-judicial-estudo
 
+[![CI](https://github.com/jairoacademy/php-processo-judicial-estudo/actions/workflows/ci.yml/badge.svg)](https://github.com/jairoacademy/php-processo-judicial-estudo/actions/workflows/ci.yml)
+
 Projeto de estudo em **PHP 8** sobre o domínio de **processo judicial eletrônico**. O objetivo é duplo: conhecer o negócio (como um processo nasce, recebe partes, eventos e prazos) e, por tabela, refrescar e modernizar o PHP de quem já trabalhou com a linguagem no passado.
 
 > **Aviso.** Projeto pessoal e independente, **sem vínculo** com tribunais, com o CNJ ou com qualquer sistema judicial existente. Não contém código de terceiros, nem de sistemas de tribunais, nem de frameworks proprietários. A arquitetura em camadas é um padrão comum e foi inspirada na documentação pública do SEI (manual de módulos, disponível no Portal do Software Público); as regras de domínio seguem normas públicas (CNJ, CPC). Nomes de sistemas e órgãos pertencem aos seus respectivos titulares. Onde algo é suposição, está marcado como tal.
@@ -51,6 +53,16 @@ docker compose exec php composer stan
 docker compose exec php composer cs       # só verifica
 docker compose exec php composer cs:fix   # corrige
 ```
+
+## Integração contínua
+O GitHub Actions (`.github/workflows/ci.yml`) roda a cada push na `main` e em cada pull request:
+
+| Job | O que faz |
+|---|---|
+| `qualidade` (PHP 8.4 e 8.5) | `composer validate`, `composer install` pelo lock, `composer audit`, PHP-CS-Fixer, PHPStan e PHPUnit |
+| `docker` | Constrói as imagens `base` e `dev` do `docker/php/Dockerfile` |
+
+O Dependabot (`.github/dependabot.yml`) abre PRs semanais com atualizações do Composer, das actions e da imagem Docker.
 
 ## Como rodar sem Docker (PHP 8.4+ e Composer)
 ```
