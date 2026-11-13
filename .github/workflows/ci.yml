@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Um novo push na mesma branch cancela a execução anterior, que ficou obsoleta
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Menor privilégio: o pipeline só lê o repositório
+permissions:
+  contents: read
+
+jobs:
+  qualidade:
+    name: Qualidade (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.4', '8.5']
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v7
+
+      - name: Instalar o PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_sqlite, intl
+          coverage: none
+          tools: composer:v2
+
+      - name: Validar o composer.json
+        run: composer validate --strict --no-check-publish
+
+      - name: Descobrir a pasta de cache do Composer
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache dos pacotes do Composer
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-php${{ matrix.php }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-php${{ matrix.php }}-composer-
+
+      - name: Instalar as dependências (versões do composer.lock)
+        run: composer install --prefer-dist --no-progress
+
+      - name: Auditoria de segurança das dependências
+        run: composer audit
+
+      - name: Estilo de código (PHP-CS-Fixer)
+        run: composer cs
+
+      - name: Análise estática (PHPStan)
+        run: composer stan
+
+      - name: Testes (PHPUnit)
+        run: composer test
+
+  docker:
+    name: Imagem Docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v7
+
+      - name: Construir as imagens base e dev
+        run: |
+          docker build --target base -f docker/php/Dockerfile -t processo-php:base .
+          docker build --target dev -f docker/php/Dockerfile -t processo-php:dev .
