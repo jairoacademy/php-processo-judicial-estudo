@@ -98,7 +98,7 @@ try {
             foreach ($rnProcesso->listar($f) as $p) {
                 $linhas .= '<tr><td><a href="?acao=processo_consultar&id=' . (int) $p->getNumIdProcesso() . '">' . h($p->getStrNumero()) . '</a></td>'
                     . '<td>' . h($p->getStrClasse()) . '</td><td>' . h($p->getStrOrgaoJulgador()) . '</td>'
-                    . '<td>' . h(ProcessoRN::SITUACOES[$p->getStrSituacao()] ?? '') . '</td></tr>';
+                    . '<td>' . h(ProcessoRN::SITUACOES[$p->getStrSituacao() ?? ''] ?? '') . '</td></tr>';
             }
             $opts = '<option value="">Todas</option>';
             foreach (ProcessoRN::SITUACOES as $k => $v) {
@@ -141,7 +141,7 @@ try {
             $fp->setNumIdProcesso($id)->setOrdStrPolo();
             $partes = '';
             foreach (new ParteRN()->listar($fp) as $x) {
-                $partes .= '<tr><td>' . h(ParteRN::POLOS[$x->getStrPolo()] ?? '') . '</td><td>' . h($x->getStrTipo()) . '</td><td>' . h($x->getStrNome()) . '</td></tr>';
+                $partes .= '<tr><td>' . h(ParteRN::POLOS[$x->getStrPolo() ?? ''] ?? '') . '</td><td>' . h($x->getStrTipo()) . '</td><td>' . h($x->getStrNome()) . '</td></tr>';
             }
             $fe = new EventoDTO();
             $fe->setNumIdProcesso($id)->setOrdNumIdEvento('DESC');
@@ -152,7 +152,7 @@ try {
             }
             $tipos = implode('', array_map(fn($t) => '<option>' . h($t) . '</option>', EventoRN::TIPOS));
             $tp = implode('', array_map(fn($t) => '<option>' . h($t) . '</option>', ParteRN::TIPOS));
-            $sit = ProcessoRN::SITUACOES[$p->getStrSituacao()] ?? '';
+            $sit = ProcessoRN::SITUACOES[$p->getStrSituacao() ?? ''] ?? '';
             pagina(
                 'Processo ' . $p->getStrNumero(),
                 '<p>' . h($p->getStrClasse()) . ' – ' . h($p->getStrAssunto()) . '<br>' . h($p->getStrOrgaoJulgador())
