@@ -1,5 +1,5 @@
-data/*.sqlite
-data/*.sqlite-journal
+# Banco SQLite das primeiras fases (o projeto agora usa MySQL)
+data/
 .idea/
 .vscode/
 vendor/

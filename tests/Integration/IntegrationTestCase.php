@@ -12,14 +12,23 @@ use ProcessoJudicialEstudo\Processo\ProcessoRN;
 use ProcessoJudicialEstudo\Util\Cnj;
 
 /**
- * Base dos testes de integração: cada teste recebe um banco SQLite em memória novo,
- * então nenhum teste depende de dados gravados por outro.
+ * Base dos testes de integração: rodam contra o MySQL real (banco processo_test, definido
+ * no phpunit.xml). As tabelas são esvaziadas antes de cada teste, então nenhum teste
+ * depende de dados gravados por outro.
+ *
+ * Por que não abrir uma transação no setUp e desfazê-la no tearDown? Porque no Banco a
+ * falha numa transação aninhada desfaz também a externa; um teste que provoca erro e
+ * continua gravando deixaria dados para trás. Esvaziar as tabelas é simples e seguro.
  */
 abstract class IntegrationTestCase extends TestCase
 {
     protected function setUp(): void
     {
-        Banco::configurar('sqlite::memory:');
+        $banco = Banco::getInstance();
+        $banco->cancelarTransacao(); // garante que nenhum teste anterior deixou transação aberta
+        foreach (['evento', 'parte', 'processo'] as $tabela) { // filhas antes da mãe (FK)
+            $banco->executarSql("DELETE FROM $tabela");
+        }
     }
 
     protected function novoProcessoDTO(string $numero, string $orgao = '1ª Vara Cível'): ProcessoDTO

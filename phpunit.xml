@@ -19,6 +19,11 @@
         </testsuite>
     </testsuites>
 
+    <php>
+        <!-- Testes nunca tocam o banco de desenvolvimento -->
+        <env name="DB_NAME" value="processo_test" force="true"/>
+    </php>
+
     <source>
         <include>
             <directory>src</directory>

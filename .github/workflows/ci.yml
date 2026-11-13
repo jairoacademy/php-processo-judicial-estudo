@@ -23,6 +23,30 @@ jobs:
       matrix:
         php: ['8.4', '8.5']
 
+    # MySQL real para os testes de integração (o mesmo banco do ambiente Docker)
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: processo_test
+          MYSQL_USER: processo
+          MYSQL_PASSWORD: processo
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=20
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: processo
+      DB_USER: processo
+      DB_PASSWORD: processo
+
     steps:
       - name: Baixar o código
         uses: actions/checkout@v7
@@ -31,7 +55,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo_sqlite, intl
+          extensions: pdo_mysql, intl
           coverage: none
           tools: composer:v2
 
@@ -61,8 +85,15 @@ jobs:
       - name: Análise estática (PHPStan)
         run: composer stan
 
-      - name: Testes (PHPUnit)
+      - name: Testes (PHPUnit; aplica as migrations no banco de testes antes)
         run: composer test
+
+      - name: Migrations reversíveis (desfaz tudo e aplica de novo)
+        env:
+          DB_NAME: processo_test
+        run: |
+          vendor/bin/doctrine-migrations migrate first --no-interaction
+          vendor/bin/doctrine-migrations migrate --no-interaction
 
   docker:
     name: Imagem Docker

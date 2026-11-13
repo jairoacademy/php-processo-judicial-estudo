@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 // Estilo de código: PER Coding Style (sucessor da PSR-12) + migração para PHP 8.4
 $finder = new PhpCsFixer\Finder()
-    ->in([__DIR__ . '/src', __DIR__ . '/tests', __DIR__ . '/public'])
-    ->append([__DIR__ . '/demo.php', __FILE__]);
+    ->in([__DIR__ . '/src', __DIR__ . '/tests', __DIR__ . '/public', __DIR__ . '/migrations'])
+    ->append([__DIR__ . '/demo.php', __DIR__ . '/migrations.php', __DIR__ . '/migrations-db.php', __FILE__]);
 
 return new PhpCsFixer\Config()
     ->setRiskyAllowed(true)
