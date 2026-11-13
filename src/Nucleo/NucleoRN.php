@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace ProcessoJudicialEstudo\Nucleo;
@@ -19,6 +20,7 @@ abstract class NucleoRN
         return $this->inicializarObjBanco();
     }
 
+    /** @param array<int, mixed> $args */
     public function __call(string $nome, array $args): mixed
     {
         foreach (['Controlado', 'Conectado'] as $sufixo) {

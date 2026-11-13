@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace ProcessoJudicialEstudo\Tests\Integration;
@@ -34,8 +35,9 @@ abstract class IntegrationTestCase extends TestCase
     /** Cadastra um processo válido e devolve o id gerado. */
     protected function cadastrarProcesso(int $sequencial = 1, string $orgao = '1ª Vara Cível'): int
     {
-        $p = (new ProcessoRN())->cadastrar($this->novoProcessoDTO(Cnj::montar($sequencial, 2026), $orgao));
-        return $p->getNumIdProcesso();
+        $id = new ProcessoRN()->cadastrar($this->novoProcessoDTO(Cnj::montar($sequencial, 2026), $orgao))->getNumIdProcesso();
+        $this->assertNotNull($id);
+        return $id;
     }
 
     /** Executa $acao e devolve a NucleoException lançada; falha o teste se nada for lançado. */

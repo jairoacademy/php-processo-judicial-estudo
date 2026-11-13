@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace ProcessoJudicialEstudo\Evento;
@@ -14,6 +15,10 @@ use ProcessoJudicialEstudo\Util\Prazo;
 /**
  * Domínio: Eventos/movimentações e prazos. Todo ato processual vira um evento tipado;
  * citação e intimação geram prazo em dias úteis.
+ *
+ * Métodos públicos despachados pelo NucleoRN::__call (declarados para o PHPStan e a IDE):
+ * @method EventoDTO cadastrar(EventoDTO $dto)
+ * @method list<EventoDTO> listar(EventoDTO $dto)
  */
 class EventoRN extends NucleoRN
 {
@@ -43,7 +48,7 @@ class EventoRN extends NucleoRN
             $ex->adicionarValidacao('Descrição é obrigatória.');
         }
         $comPrazo = in_array($dto->getStrTipo(), self::COM_PRAZO, true);
-        $dias = (int) ($dto->getNumDiasPrazo() ?? 0);
+        $dias = $dto->getNumDiasPrazo() ?? 0;
         if ($comPrazo && $dias <= 0) {
             $ex->adicionarValidacao('Citação/intimação exige prazo em dias úteis (> 0).');
         }
@@ -51,10 +56,10 @@ class EventoRN extends NucleoRN
 
         $proc = new ProcessoDTO();
         $proc->setNumIdProcesso($dto->getNumIdProcesso())->retNumIdProcesso()->retStrSituacao();
-        $processo = (new ProcessoRN())->consultar($proc);
+        $processo = new ProcessoRN()->consultar($proc);
         if ($processo === null) {
             $ex->adicionarValidacao('Processo inexistente.');
-            $ex->lancarValidacoes();
+            throw $ex;
         }
         if ($processo->getStrSituacao() === 'B' && $dto->getStrTipo() !== 'BAIXA') {
             $ex->adicionarValidacao('Processo baixado não admite novos eventos.');
@@ -62,16 +67,20 @@ class EventoRN extends NucleoRN
         }
 
         $agora = new DateTimeImmutable('now');
-        $dto->isSetDthEvento() || $dto->setDthEvento($agora->format('Y-m-d H:i:s'));
-        $dto->isSetStrUsuario() || $dto->setStrUsuario('sistema');
+        if (!$dto->isSetDthEvento()) {
+            $dto->setDthEvento($agora->format('Y-m-d H:i:s'));
+        }
+        if (!$dto->isSetStrUsuario()) {
+            $dto->setStrUsuario('sistema');
+        }
         if ($comPrazo) {
-            $base = new DateTimeImmutable((string) $dto->getDthEvento());
+            $base = new DateTimeImmutable($dto->getDthEvento() ?? 'now');
             $dto->setDtaPrazoFinal(Prazo::somarDiasUteis($base, $dias, self::$feriados)->format('Y-m-d'));
         }
         return $this->bd()->cadastrar($dto);
     }
 
-    /** @return EventoDTO[] */
+    /** @return list<EventoDTO> */
     protected function listarConectado(EventoDTO $dto): array
     {
         return $this->bd()->listar($dto);

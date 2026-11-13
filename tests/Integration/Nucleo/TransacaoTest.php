@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace ProcessoJudicialEstudo\Tests\Integration\Nucleo;
@@ -47,8 +48,8 @@ final class TransacaoTest extends IntegrationTestCase
             fn() => $this->rnQueFalhaAposGravar()->cadastrar($this->novoProcessoDTO(Cnj::montar(2, 2026)))
         );
 
-        $this->assertSame(0, (new ProcessoRN())->contar(new ProcessoDTO()));
-        $this->assertCount(0, (new EventoRN())->listar(new EventoDTO()));
+        $this->assertSame(0, new ProcessoRN()->contar(new ProcessoDTO()));
+        $this->assertCount(0, new EventoRN()->listar(new EventoDTO()));
     }
 
     #[Test]
@@ -59,7 +60,7 @@ final class TransacaoTest extends IntegrationTestCase
         $antes = $banco->totalTransacoes;
 
         for ($i = 1; $i <= 5; $i++) {
-            (new ParteRN())->cadastrar($this->novaParte($id, "Réu $i"));
+            new ParteRN()->cadastrar($this->novaParte($id, "Réu $i"));
         }
 
         $this->assertSame(5, $banco->totalTransacoes - $antes);
@@ -74,7 +75,7 @@ final class TransacaoTest extends IntegrationTestCase
 
         $banco->abrirTransacao();
         for ($i = 1; $i <= 5; $i++) {
-            (new ParteRN())->cadastrar($this->novaParte($id, "Réu $i"));
+            new ParteRN()->cadastrar($this->novaParte($id, "Réu $i"));
         }
         $banco->confirmarTransacao();
 

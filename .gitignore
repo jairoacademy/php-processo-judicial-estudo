@@ -4,6 +4,7 @@ data/*.sqlite-journal
 .vscode/
 vendor/
 .phpunit.cache/
+.php-cs-fixer.cache
 .env
 
 # Notas pessoais de estudo; ficam fora do repositório

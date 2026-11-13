@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace ProcessoJudicialEstudo\Tests\Integration\Evento;
@@ -20,7 +21,7 @@ final class EventoRNTest extends IntegrationTestCase
         $evento = new EventoDTO();
         $evento->setNumIdProcesso($id)->setStrTipo('INTIMACAO')->setStrDescricao('Intimação para réplica')->setNumDiasPrazo(15);
 
-        $evento = (new EventoRN())->cadastrar($evento);
+        $evento = new EventoRN()->cadastrar($evento);
 
         $this->assertNotNull($evento->getDtaPrazoFinal());
     }
@@ -33,7 +34,7 @@ final class EventoRNTest extends IntegrationTestCase
         $evento->setNumIdProcesso($id)->setStrTipo('CITACAO')->setStrDescricao('Citação');
 
         $this->expectException(NucleoException::class);
-        (new EventoRN())->cadastrar($evento);
+        new EventoRN()->cadastrar($evento);
     }
 
     #[Test]
@@ -42,12 +43,12 @@ final class EventoRNTest extends IntegrationTestCase
         $id = $this->cadastrarProcesso();
         $baixa = new ProcessoDTO();
         $baixa->setNumIdProcesso($id)->setStrSituacao('B');
-        (new ProcessoRN())->alterarSituacao($baixa);
+        new ProcessoRN()->alterarSituacao($baixa);
 
         $evento = new EventoDTO();
         $evento->setNumIdProcesso($id)->setStrTipo('PETICAO')->setStrDescricao('Petição após baixa');
 
         $this->expectException(NucleoException::class);
-        (new EventoRN())->cadastrar($evento);
+        new EventoRN()->cadastrar($evento);
     }
 }

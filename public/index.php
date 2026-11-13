@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 // Front controller no estilo controlador.php?acao=<entidade>_<acao>
@@ -17,15 +18,43 @@ use ProcessoJudicialEstudo\Processo\ProcessoRN;
 session_start();
 $_SESSION['csrf'] ??= bin2hex(random_bytes(16));
 
+/** Token CSRF da sessão. */
+function csrf(): string
+{
+    $token = $_SESSION['csrf'] ?? '';
+    return is_string($token) ? $token : '';
+}
+
+/**
+ * Lê um campo de texto da entrada ($_GET ou $_POST); valor ausente ou não textual vira $padrao.
+ * @param array<mixed> $origem
+ */
+function texto(array $origem, string $nome, string $padrao = ''): string
+{
+    $valor = $origem[$nome] ?? $padrao;
+    return is_string($valor) ? trim($valor) : $padrao;
+}
+
+/**
+ * Lê um campo inteiro da entrada; valor não numérico vira 0.
+ * @param array<mixed> $origem
+ */
+function inteiro(array $origem, string $nome): int
+{
+    $valor = $origem[$nome] ?? 0;
+    return is_numeric($valor) ? (int) $valor : 0;
+}
+
 function h(?string $s): string
 {
     return htmlspecialchars((string) $s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+/** @param list<string> $erros */
 function pagina(string $titulo, string $corpo, array $erros = []): never
 {
     header('Content-Type: text/html; charset=utf-8');
-    $e = $erros ? '<ul class="erro">' . implode('', array_map(fn($m) => '<li>' . h($m) . '</li>', $erros)) . '</ul>' : '';
+    $e = $erros !== [] ? '<ul class="erro">' . implode('', array_map(fn($m) => '<li>' . h($m) . '</li>', $erros)) . '</ul>' : '';
     echo '<!doctype html><meta charset="utf-8"><title>' . h($titulo) . '</title>'
         . '<style>body{font:15px system-ui;max-width:900px;margin:2rem auto;padding:0 1rem}table{border-collapse:collapse;width:100%}'
         . 'td,th{border:1px solid #ccc;padding:.35rem .5rem;text-align:left}.erro{background:#fee;border:1px solid #c66;padding:.5rem 1.5rem}'
@@ -36,30 +65,34 @@ function pagina(string $titulo, string $corpo, array $erros = []): never
 
 function token(): string
 {
-    return '<input type="hidden" name="csrf" value="' . h($_SESSION['csrf']) . '">';
+    return '<input type="hidden" name="csrf" value="' . h(csrf()) . '">';
 }
 
 function exigirPost(): void
 {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !hash_equals($_SESSION['csrf'], (string) ($_POST['csrf'] ?? ''))) {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !hash_equals(csrf(), texto($_POST, 'csrf'))) {
         http_response_code(400);
         pagina('Requisição inválida', '<p>CSRF ou método inválido.</p>');
     }
 }
 
-$acao = $_GET['acao'] ?? 'processo_listar';
+$acao = texto($_GET, 'acao', 'processo_listar');
 $rnProcesso = new ProcessoRN();
 
 try {
     switch ($acao) {
         case 'processo_listar':
             $f = new ProcessoDTO();
-            $q = trim((string) ($_GET['q'] ?? ''));
-            $sit = (string) ($_GET['sit'] ?? '');
-            $q !== '' && $f->setStrNumero($q, NucleoDTO::OPER_LIKE);
-            isset(ProcessoRN::SITUACOES[$sit]) && $f->setStrSituacao($sit);
+            $q = texto($_GET, 'q');
+            $sit = texto($_GET, 'sit');
+            if ($q !== '') {
+                $f->setStrNumero($q, NucleoDTO::OPER_LIKE);
+            }
+            if (isset(ProcessoRN::SITUACOES[$sit])) {
+                $f->setStrSituacao($sit);
+            }
             $total = $rnProcesso->contar($f);
-            $pag = max(0, (int) ($_GET['p'] ?? 0));
+            $pag = max(0, inteiro($_GET, 'p'));
             $f->setOrdNumIdProcesso('DESC')->setNumMaxRegistrosRetorno(10)->setNumPaginaAtual($pag);
             $linhas = '';
             foreach ($rnProcesso->listar($f) as $p) {
@@ -78,12 +111,13 @@ try {
                 . '<a href="?acao=processo_cadastrar">+ Novo processo</a></form><p>' . $total . ' resultado(s)</p>'
                 . '<table><tr><th>Número</th><th>Classe</th><th>Órgão julgador</th><th>Situação</th></tr>' . $linhas . '</table><p>' . $nav . '</p>');
 
+            // no break
         case 'processo_cadastrar':
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exigirPost();
                 $p = new ProcessoDTO();
-                $p->setStrNumero(trim((string) $_POST['numero']))->setStrClasse(trim((string) $_POST['classe']))
-                    ->setStrAssunto(trim((string) $_POST['assunto']))->setStrOrgaoJulgador(trim((string) $_POST['orgao']))
+                $p->setStrNumero(texto($_POST, 'numero'))->setStrClasse(texto($_POST, 'classe'))
+                    ->setStrAssunto(texto($_POST, 'assunto'))->setStrOrgaoJulgador(texto($_POST, 'orgao'))
                     ->setStrSinSigilo(isset($_POST['sigilo']) ? 'S' : 'N');
                 $p = $rnProcesso->cadastrar($p);
                 header('Location: ?acao=processo_consultar&id=' . $p->getNumIdProcesso());
@@ -95,8 +129,9 @@ try {
                 . '<label>Órgão julgador <input name="orgao"></label><label><input type="checkbox" name="sigilo"> Segredo de justiça</label>'
                 . '<button>Distribuir</button></form>');
 
+            // no break
         case 'processo_consultar':
-            $id = (int) ($_GET['id'] ?? 0);
+            $id = inteiro($_GET, 'id');
             $f = new ProcessoDTO();
             $f->setNumIdProcesso($id);
             $p = $rnProcesso->consultar($f);
@@ -105,20 +140,21 @@ try {
             $fp = new ParteDTO();
             $fp->setNumIdProcesso($id)->setOrdStrPolo();
             $partes = '';
-            foreach ((new ParteRN())->listar($fp) as $x) {
+            foreach (new ParteRN()->listar($fp) as $x) {
                 $partes .= '<tr><td>' . h(ParteRN::POLOS[$x->getStrPolo()] ?? '') . '</td><td>' . h($x->getStrTipo()) . '</td><td>' . h($x->getStrNome()) . '</td></tr>';
             }
             $fe = new EventoDTO();
             $fe->setNumIdProcesso($id)->setOrdNumIdEvento('DESC');
             $eventos = '';
-            foreach ((new EventoRN())->listar($fe) as $x) {
+            foreach (new EventoRN()->listar($fe) as $x) {
                 $eventos .= '<tr><td>' . h($x->getDthEvento()) . '</td><td>' . h($x->getStrTipo()) . '</td><td>' . h($x->getStrDescricao())
                     . '</td><td>' . h($x->getDtaPrazoFinal()) . '</td></tr>';
             }
             $tipos = implode('', array_map(fn($t) => '<option>' . h($t) . '</option>', EventoRN::TIPOS));
             $tp = implode('', array_map(fn($t) => '<option>' . h($t) . '</option>', ParteRN::TIPOS));
             $sit = ProcessoRN::SITUACOES[$p->getStrSituacao()] ?? '';
-            pagina('Processo ' . $p->getStrNumero(),
+            pagina(
+                'Processo ' . $p->getStrNumero(),
                 '<p>' . h($p->getStrClasse()) . ' – ' . h($p->getStrAssunto()) . '<br>' . h($p->getStrOrgaoJulgador())
                 . ' · ' . h($sit) . ($p->getStrSinSigilo() === 'S' ? ' · <b>segredo de justiça</b>' : '') . '</p>'
                 . '<h3>Partes</h3><table><tr><th>Polo</th><th>Tipo</th><th>Nome</th></tr>' . $partes . '</table>'
@@ -127,27 +163,29 @@ try {
                 . '<select name="tipo">' . $tp . '</select> <button>Adicionar parte</button></form>'
                 . '<h3>Eventos</h3><table><tr><th>Data/hora</th><th>Tipo</th><th>Descrição</th><th>Prazo final</th></tr>' . $eventos . '</table>'
                 . '<form method="post" action="?acao=evento_cadastrar&id=' . $id . '">' . token()
-                . '<select name="tipo">' . $tipos . '</select> <input name="descricao" placeholder="descrição"> <input name="dias" type="number" min="0" placeholder="prazo (dias úteis)"> <button>Registrar evento</button></form>');
+                . '<select name="tipo">' . $tipos . '</select> <input name="descricao" placeholder="descrição"> <input name="dias" type="number" min="0" placeholder="prazo (dias úteis)"> <button>Registrar evento</button></form>'
+            );
 
+            // no break
         case 'parte_cadastrar':
             exigirPost();
-            $id = (int) ($_GET['id'] ?? 0);
+            $id = inteiro($_GET, 'id');
             $x = new ParteDTO();
-            $x->setNumIdProcesso($id)->setStrNome(trim((string) $_POST['nome']))->setStrDocumento(trim((string) $_POST['doc']))
-                ->setStrPolo((string) $_POST['polo'])->setStrTipo((string) $_POST['tipo']);
-            (new ParteRN())->cadastrar($x);
+            $x->setNumIdProcesso($id)->setStrNome(texto($_POST, 'nome'))->setStrDocumento(texto($_POST, 'doc'))
+                ->setStrPolo(texto($_POST, 'polo'))->setStrTipo(texto($_POST, 'tipo'));
+            new ParteRN()->cadastrar($x);
             header('Location: ?acao=processo_consultar&id=' . $id);
             exit;
 
         case 'evento_cadastrar':
             exigirPost();
-            $id = (int) ($_GET['id'] ?? 0);
+            $id = inteiro($_GET, 'id');
             $x = new EventoDTO();
-            $x->setNumIdProcesso($id)->setStrTipo((string) $_POST['tipo'])->setStrDescricao(trim((string) $_POST['descricao']));
-            if ((int) $_POST['dias'] > 0) {
-                $x->setNumDiasPrazo((int) $_POST['dias']);
+            $x->setNumIdProcesso($id)->setStrTipo(texto($_POST, 'tipo'))->setStrDescricao(texto($_POST, 'descricao'));
+            if (inteiro($_POST, 'dias') > 0) {
+                $x->setNumDiasPrazo(inteiro($_POST, 'dias'));
             }
-            (new EventoRN())->cadastrar($x);
+            new EventoRN()->cadastrar($x);
             header('Location: ?acao=processo_consultar&id=' . $id);
             exit;
 
