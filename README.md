@@ -11,7 +11,7 @@ O que ele garante:
 - citações e intimações com o prazo final calculado em dias úteis;
 - processo baixado não recebe novos atos.
 
-**Stack:** PHP 8.4 · MySQL 8.4 · Docker (nginx + PHP-FPM) · Composer · Doctrine Migrations · PHPUnit · PHPStan (nível max) · PHP-CS-Fixer · GitHub Actions
+**Stack:** PHP 8.4 · MySQL 8.4 · Redis · Docker (nginx + PHP-FPM) · Composer · Doctrine Migrations · PHPUnit · PHPStan (nível max) · PHP-CS-Fixer · GitHub Actions
 
 > **Aviso.** Projeto pessoal e independente, **sem vínculo** com tribunais, com o CNJ ou com qualquer sistema judicial existente. Não contém código de terceiros nem de frameworks proprietários. A arquitetura em camadas foi inspirada na documentação pública do SEI (manual de módulos, no Portal do Software Público), e as regras de domínio seguem normas públicas (CNJ, CPC). Onde algo é suposição, está marcado como tal.
 
@@ -39,7 +39,7 @@ src/
 ├── Autuacao/Processo/       ProcessoDTO, ProcessoBD, ProcessoRN
 ├── Partes/Parte/            ParteDTO, ParteBD, ParteRN
 ├── Movimentacao/Evento/     EventoDTO, EventoBD, EventoRN
-└── Compartilhado/           Nucleo (DTO, BD, RN e Banco genéricos), Util, Web (controllers, sessão, visão)
+└── Compartilhado/           Nucleo (DTO, BD, RN e Banco genéricos), Cache (Redis), Util, Web (controllers, sessão, visão)
 ```
 Um subdomínio fala com outro só pela RN, nunca pelo BD do vizinho; o `Compartilhado` não tem regra de negócio.
 
@@ -50,10 +50,12 @@ Um subdomínio fala com outro só pela RN, nunca pelo BD do vizinho; o `Comparti
 | `src/Compartilhado/Nucleo/NucleoRN.php` | `__call` abre conexão (`Conectado`) ou conexão + transação (`Controlado`), com commit/rollback |
 | `src/Compartilhado/Nucleo/Banco.php` | Singleton de PDO (MySQL, prepared statements reais) e controle de transação (aninhada "entra" na externa) |
 | `src/Autuacao/Processo/ProcessoRN.php` | Uma RN chama outra RN, nunca o BD alheio; o evento de distribuição entra na mesma transação |
+| `src/Compartilhado/Cache/` | Cache no Redis (phpredis): a consulta do processo por id usa *cache-aside* (busca no cache; se não achar, vai ao banco e guarda), com invalidação quando a situação muda. Sem Redis configurado, a aplicação segue sem cache |
 | `src/Compartilhado/Util/` | Número CNJ (DV módulo 97), CPF/CNPJ, prazo em dias úteis |
 | `src/Compartilhado/Web/Aplicacao.php` | Recebe a requisição (PSR-7): confere o CSRF, escolhe o controller pela tabela de rotas `?acao=entidade_acao` e transforma erros em páginas (422, 404, 405, 500) |
 | `src/Compartilhado/Web/Controller/` | Controllers finos: leem a requisição, chamam a RN e respondem com uma página ou com um redirecionamento (PRG, mensagens flash) |
 | `templates/` | Telas em PHP puro, com escape de saída (`e()`) em todo valor variável |
+| `public/index.php` | Front controller; guarda a sessão (token CSRF e mensagens flash) no Redis quando configurado |
 
 Armadilha demonstrada em `demo.php`: chamar um método transacional dentro de um loop abre uma transação por iteração (50 commits, e uma falha no meio deixa gravação parcial).
 

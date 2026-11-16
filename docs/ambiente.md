@@ -3,20 +3,21 @@
 [Voltar ao README](../README.md)
 
 ## Containers
-O `docker compose` sobe três serviços:
+O `docker compose` sobe quatro serviços:
 
 | Serviço | Imagem | Papel |
 |---|---|---|
 | `php` | PHP-FPM 8.4 (Alpine), com Composer e Xdebug | Executa a aplicação, os testes e as ferramentas |
 | `nginx` | nginx 1.30 | Recebe as requisições na porta 8090 e repassa os `.php` ao php-fpm por FastCGI (porta 9000) |
 | `mysql` | MySQL 8.4 | Banco da aplicação (`processo`) e dos testes (`processo_test`) |
+| `redis` | Redis 8.10 | Cache da consulta de processo e sessões do PHP |
 
 | Arquivo | Papel |
 |---|---|
 | `compose.yaml` | Os três serviços, a rede entre eles e o volume do MySQL |
-| `docker/php/Dockerfile` | Imagem multi-stage: `base` (pdo_mysql, intl, opcache) e `dev` (Xdebug, Composer, mesmo UID do usuário do host) |
+| `docker/php/Dockerfile` | Imagem multi-stage: `base` (pdo_mysql, intl, opcache, redis) e `dev` (Xdebug, Composer, mesmo UID do usuário do host) |
 | `docker/php/conf.d/` | `php.ini` comum e de desenvolvimento |
-| `docker/nginx/default.conf` | Configuração do nginx; só a pasta `public/` fica exposta |
+| `docker/nginx/default.conf` | Configuração do nginx; só a pasta `public/` fica exposta. Usa o DNS do Docker para achar o `php` mesmo depois de ele ser recriado (evita 502) |
 | `docker/mysql/init/` | Script da primeira inicialização do MySQL: cria o banco de testes |
 | `.env.example` | Variáveis do ambiente; copie para `.env`, que fica fora do git |
 
@@ -25,6 +26,7 @@ O `docker compose` sobe três serviços:
 |---|---|
 | `APP_PORT` | Porta do nginx no host (padrão 8090) |
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Conexão da aplicação e das migrations |
+| `REDIS_HOST`, `REDIS_PORT` | Redis para cache e sessões; sem `REDIS_HOST`, a aplicação roda sem cache e com sessão em arquivo |
 | `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`, `MYSQL_PORT` | Configuração do container do MySQL |
 
 ## Comandos do dia a dia
@@ -40,6 +42,8 @@ Todos rodam dentro do container `php`:
 | `docker compose exec php composer cs:fix` | Corrige o estilo de código |
 | `docker compose exec php composer db:status` | Migrations aplicadas e pendentes |
 | `docker compose exec php php demo.php` | Demonstração: 50 transações num loop x 1 transação envolvente |
+| `docker compose exec redis redis-cli --scan --pattern 'processo:*'` | Processos guardados no cache |
+| `docker compose exec redis redis-cli --scan --pattern 'sessao:*'` | Sessões guardadas no Redis |
 
 Para parar: `docker compose down`. Os dados do MySQL ficam no volume `mysql-data` e continuam lá na próxima subida (`docker compose down -v` apaga o volume).
 
