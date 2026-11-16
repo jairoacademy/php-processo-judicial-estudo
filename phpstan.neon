@@ -16,5 +16,5 @@ parameters:
         -
             # O despacho Conectado/Controlado do núcleo é, por definição, uma chamada dinâmica
             identifier: method.dynamicName
-            path: src/Nucleo/NucleoRN.php
+            path: src/Compartilhado/Nucleo/NucleoRN.php
             count: 2

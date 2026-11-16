@@ -1,9 +1,9 @@
 <?php
 
-use ProcessoJudicialEstudo\Processo\ProcessoRN;
+use ProcessoJudicialEstudo\Autuacao\Processo\ProcessoRN;
 
 /**
- * @var list<ProcessoJudicialEstudo\Processo\ProcessoDTO> $processos
+ * @var list<ProcessoJudicialEstudo\Autuacao\Processo\ProcessoDTO> $processos
  * @var int $total
  * @var string $numero filtro digitado
  * @var string $situacao filtro escolhido

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 // Conexão usada pelo Doctrine Migrations: as mesmas variáveis de ambiente da aplicação.
 use Doctrine\DBAL\DriverManager;
-use ProcessoJudicialEstudo\Nucleo\ConfiguracaoBanco;
+use ProcessoJudicialEstudo\Compartilhado\Nucleo\ConfiguracaoBanco;
 
 require __DIR__ . '/vendor/autoload.php';
 

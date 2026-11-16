@@ -1,13 +1,13 @@
 <?php
 
-use ProcessoJudicialEstudo\Evento\EventoRN;
-use ProcessoJudicialEstudo\Parte\ParteRN;
-use ProcessoJudicialEstudo\Processo\ProcessoRN;
+use ProcessoJudicialEstudo\Movimentacao\Evento\EventoRN;
+use ProcessoJudicialEstudo\Partes\Parte\ParteRN;
+use ProcessoJudicialEstudo\Autuacao\Processo\ProcessoRN;
 
 /**
- * @var ProcessoJudicialEstudo\Processo\ProcessoDTO $processo
- * @var list<ProcessoJudicialEstudo\Parte\ParteDTO> $partes
- * @var list<ProcessoJudicialEstudo\Evento\EventoDTO> $eventos
+ * @var ProcessoJudicialEstudo\Autuacao\Processo\ProcessoDTO $processo
+ * @var list<ProcessoJudicialEstudo\Partes\Parte\ParteDTO> $partes
+ * @var list<ProcessoJudicialEstudo\Movimentacao\Evento\EventoDTO> $eventos
  * @var string $csrf
  */
 $id = $processo->getNumIdProcesso();

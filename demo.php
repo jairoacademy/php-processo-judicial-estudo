@@ -6,12 +6,12 @@ declare(strict_types=1);
 // Grava no banco configurado no ambiente e apaga os próprios dados no final.
 require __DIR__ . '/vendor/autoload.php';
 
-use ProcessoJudicialEstudo\Nucleo\Banco;
-use ProcessoJudicialEstudo\Parte\ParteDTO;
-use ProcessoJudicialEstudo\Parte\ParteRN;
-use ProcessoJudicialEstudo\Processo\ProcessoDTO;
-use ProcessoJudicialEstudo\Processo\ProcessoRN;
-use ProcessoJudicialEstudo\Util\Cnj;
+use ProcessoJudicialEstudo\Autuacao\Processo\ProcessoDTO;
+use ProcessoJudicialEstudo\Autuacao\Processo\ProcessoRN;
+use ProcessoJudicialEstudo\Compartilhado\Nucleo\Banco;
+use ProcessoJudicialEstudo\Compartilhado\Util\Cnj;
+use ProcessoJudicialEstudo\Partes\Parte\ParteDTO;
+use ProcessoJudicialEstudo\Partes\Parte\ParteRN;
 
 $banco = Banco::getInstance();
 

@@ -16,7 +16,7 @@
             "ProcessoJudicialEstudo\\Migrations\\": "migrations/"
         },
         "files": [
-            "src/Web/funcoes.php"
+            "src/Compartilhado/Web/funcoes.php"
         ]
     },
     "autoload-dev": {
