@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace ProcessoJudicialEstudo\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use ProcessoJudicialEstudo\Nucleo\Banco;
-use ProcessoJudicialEstudo\Nucleo\NucleoException;
-use ProcessoJudicialEstudo\Processo\ProcessoDTO;
-use ProcessoJudicialEstudo\Processo\ProcessoRN;
-use ProcessoJudicialEstudo\Util\Cnj;
+use ProcessoJudicialEstudo\Autuacao\Processo\ProcessoDTO;
+use ProcessoJudicialEstudo\Autuacao\Processo\ProcessoRN;
+use ProcessoJudicialEstudo\Compartilhado\Nucleo\Banco;
+use ProcessoJudicialEstudo\Compartilhado\Nucleo\NucleoException;
+use ProcessoJudicialEstudo\Compartilhado\Util\Cnj;
 
 /**
  * Base dos testes de integração: rodam contra o MySQL real (banco processo_test, definido

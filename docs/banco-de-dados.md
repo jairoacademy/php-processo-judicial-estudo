@@ -3,7 +3,7 @@
 [Voltar ao README](../README.md)
 
 ## MySQL
-MySQL 8.4 com InnoDB e `utf8mb4_0900_ai_ci`. A conexão vem de `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` e `DB_PASSWORD` (`src/Nucleo/ConfiguracaoBanco.php`), lidas tanto pela aplicação (PDO, com prepared statements reais) quanto pelas migrations (Doctrine DBAL).
+MySQL 8.4 com InnoDB e `utf8mb4_0900_ai_ci`. A conexão vem de `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` e `DB_PASSWORD` (`src/Compartilhado/Nucleo/ConfiguracaoBanco.php`), lidas tanto pela aplicação (PDO, com prepared statements reais) quanto pelas migrations (Doctrine DBAL).
 
 Os testes de integração usam um banco separado, `processo_test`, definido no `phpunit.xml`; eles nunca tocam o banco de desenvolvimento.
 

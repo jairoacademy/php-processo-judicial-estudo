@@ -7,8 +7,8 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7Server\ServerRequestCreator;
-use ProcessoJudicialEstudo\Web\Aplicacao;
-use ProcessoJudicialEstudo\Web\Sessao;
+use ProcessoJudicialEstudo\Compartilhado\Web\Aplicacao;
+use ProcessoJudicialEstudo\Compartilhado\Web\Sessao;
 
 // 1. Sessão do usuário (token CSRF e mensagens flash)
 session_start();
