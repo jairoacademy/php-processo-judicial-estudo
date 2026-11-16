@@ -40,7 +40,7 @@ O workflow `.github/workflows/ci.yml` roda a cada push na `main` e em cada pull 
 
 | Job | O que faz |
 |---|---|
-| `qualidade` (PHP 8.4 e 8.5, com MySQL 8.4 como service container) | `composer validate`, `composer install` pelo lock, `composer audit`, PHP-CS-Fixer, PHPStan, PHPUnit e migrations reversíveis (desfaz tudo e aplica de novo) |
+| `qualidade` (PHP 8.4 e 8.5, com MySQL 8.4 e Redis 8.10 como service containers) | `composer validate`, `composer install` pelo lock, `composer audit`, PHP-CS-Fixer, PHPStan, PHPUnit e migrations reversíveis (desfaz tudo e aplica de novo) |
 | `docker` | Constrói as imagens `base` e `dev` do `docker/php/Dockerfile` |
 
 O PHP 8.4 é a versão do projeto; o 8.5 entra na matriz para antecipar incompatibilidades com a próxima versão.

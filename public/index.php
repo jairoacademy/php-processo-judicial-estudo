@@ -7,10 +7,16 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7Server\ServerRequestCreator;
+use ProcessoJudicialEstudo\Compartilhado\Cache\ConfiguracaoRedis;
 use ProcessoJudicialEstudo\Compartilhado\Web\Aplicacao;
 use ProcessoJudicialEstudo\Compartilhado\Web\Sessao;
 
-// 1. Sessão do usuário (token CSRF e mensagens flash)
+// 1. Sessão do usuário (token CSRF e mensagens flash), guardada no Redis quando configurado
+$redis = ConfiguracaoRedis::doAmbiente();
+if ($redis !== null) {
+    ini_set('session.save_handler', 'redis');
+    ini_set('session.save_path', $redis->caminhoSessao());
+}
 session_start();
 
 // 2. Requisição: $_GET, $_POST e $_SERVER viram um objeto PSR-7

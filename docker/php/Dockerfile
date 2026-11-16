@@ -1,5 +1,5 @@
 # Imagem do PHP-FPM. Dois alvos (multi-stage):
-#   base: extensões de produção (pdo_mysql, intl, opcache)
+#   base: extensões de produção (pdo_mysql, intl, opcache, redis)
 #   dev:  base + Xdebug e usuário com o mesmo UID do host (arquivos montados ficam graváveis)
 FROM php:8.4-fpm-alpine AS base
 
@@ -8,6 +8,12 @@ RUN apk add --no-cache icu-libs \
     && apk add --no-cache --virtual .build-deps icu-dev \
     && docker-php-ext-install -j"$(nproc)" pdo_mysql intl opcache \
     && apk del .build-deps
+
+# phpredis (cliente do Redis, usado para cache e sessões), compilado via PECL
+RUN apk add --no-cache --virtual .build-deps-redis $PHPIZE_DEPS \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apk del .build-deps-redis
 
 COPY docker/php/conf.d/app.ini "$PHP_INI_DIR/conf.d/zz-app.ini"
 WORKDIR /var/www/app
