@@ -7,6 +7,8 @@ namespace ProcessoJudicialEstudo\Tests\Integration;
 use PHPUnit\Framework\TestCase;
 use ProcessoJudicialEstudo\Autuacao\Processo\ProcessoDTO;
 use ProcessoJudicialEstudo\Autuacao\Processo\ProcessoRN;
+use ProcessoJudicialEstudo\Compartilhado\Cache\Caches;
+use ProcessoJudicialEstudo\Compartilhado\Cache\MemoriaCache;
 use ProcessoJudicialEstudo\Compartilhado\Nucleo\Banco;
 use ProcessoJudicialEstudo\Compartilhado\Nucleo\NucleoException;
 use ProcessoJudicialEstudo\Compartilhado\Util\Cnj;
@@ -24,6 +26,7 @@ abstract class IntegrationTestCase extends TestCase
 {
     protected function setUp(): void
     {
+        Caches::usar(new MemoriaCache()); // cada teste começa com o cache vazio, sem depender de Redis
         $banco = Banco::getInstance();
         $banco->cancelarTransacao(); // garante que nenhum teste anterior deixou transação aberta
         foreach (['evento', 'parte', 'processo'] as $tabela) { // filhas antes da mãe (FK)
