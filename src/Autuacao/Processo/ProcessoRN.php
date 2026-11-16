@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ProcessoJudicialEstudo\Autuacao\Processo;
 
+use ProcessoJudicialEstudo\Compartilhado\Cache\Caches;
 use ProcessoJudicialEstudo\Compartilhado\Nucleo\Banco;
 use ProcessoJudicialEstudo\Compartilhado\Nucleo\NucleoException;
 use ProcessoJudicialEstudo\Compartilhado\Nucleo\NucleoRN;
@@ -25,6 +26,9 @@ use ProcessoJudicialEstudo\Movimentacao\Evento\EventoRN;
 class ProcessoRN extends NucleoRN
 {
     public const SITUACOES = ['A' => 'Em andamento', 'S' => 'Suspenso', 'B' => 'Baixado'];
+
+    /** Validade do processo no cache: 5 minutos (a invalidação na alteração garante dado atualizado antes disso). */
+    private const CACHE_SEGUNDOS = 300;
 
     protected function inicializarObjBanco(): Banco
     {
@@ -90,6 +94,8 @@ class ProcessoRN extends NucleoRN
         $alt = new ProcessoDTO();
         $alt->setNumIdProcesso($dto->getNumIdProcesso())->setStrSituacao($nova);
         $this->bd()->alterar($alt);
+        // Invalida o cache (em vez de atualizá-lo): a próxima consulta busca o dado novo no banco
+        Caches::atual()->remover(self::chaveCache((int) $dto->getNumIdProcesso()));
 
         $ev = new EventoDTO();
         $ev->setNumIdProcesso($dto->getNumIdProcesso());
@@ -98,9 +104,44 @@ class ProcessoRN extends NucleoRN
         new EventoRN()->cadastrar($ev);
     }
 
+    /**
+     * Consulta com cache-aside para o caso mais comum (a tela do processo pede só pelo id):
+     * procura no cache; se não achar, vai ao banco e guarda o resultado no cache.
+     * Consultas com outros filtros ou colunas escolhidas (ret) vão direto ao banco.
+     */
     protected function consultarConectado(ProcessoDTO $dto): ?ProcessoDTO
     {
-        return $this->bd()->consultar($dto);
+        if (!self::ehConsultaSoPorId($dto)) {
+            return $this->bd()->consultar($dto);
+        }
+        $chave = self::chaveCache((int) $dto->getNumIdProcesso());
+        $cache = Caches::atual();
+
+        $guardado = $cache->buscar($chave);
+        if ($guardado !== null) {
+            $processo = new ProcessoDTO();
+            foreach ($guardado as $atributo => $valor) {
+                $processo->definirValor($atributo, $valor);
+            }
+            return $processo;
+        }
+
+        $processo = $this->bd()->consultar($dto);
+        if ($processo !== null) {
+            $cache->guardar($chave, $processo->valores(), self::CACHE_SEGUNDOS);
+        }
+        return $processo;
+    }
+
+    private static function chaveCache(int $id): string
+    {
+        return "processo:$id";
+    }
+
+    private static function ehConsultaSoPorId(ProcessoDTO $dto): bool
+    {
+        return array_keys($dto->valores()) === ['NumIdProcesso']
+            && $dto->operadores() === [] && $dto->retorno() === [] && $dto->ordem() === [];
     }
 
     /** @return list<ProcessoDTO> */
