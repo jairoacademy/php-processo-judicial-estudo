@@ -22,7 +22,7 @@ public/index.php                             requisição PSR-7 montada a partir
 ```
 
 ## 1. A requisição chega ao controller
-O `public/index.php` monta uma requisição PSR-7 e a entrega a `Aplicacao::atender()` (`src/Web/Aplicacao.php`), que:
+O `public/index.php` monta uma requisição PSR-7 e a entrega a `Aplicacao::atender()` (`src/Compartilhado/Web/Aplicacao.php`), que:
 - recusa com 400 um POST sem o token CSRF da sessão;
 - procura `processo_cadastrar` + POST na tabela de rotas e chama `ProcessoController::cadastrar`;
 - envolve a chamada num `try`, que transforma exceções em páginas de erro (422, 404 ou 500).
@@ -34,7 +34,7 @@ $processo = new ProcessoRN()->cadastrar($processo);
 ```
 O controller não sabe nada de SQL nem de transação; ele só conhece a RN.
 
-## 2. Validações (`src/Processo/ProcessoRN.php:42-53`)
+## 2. Validações (`src/Autuacao/Processo/ProcessoRN.php:42-53`)
 ```php
 $ex = new NucleoException('Dados do processo inválidos.');
 if (!Cnj::validar($numero)) { $ex->adicionarValidacao('Número inválido ...'); }
@@ -43,7 +43,7 @@ $ex->lancarValidacoes();   // lança só se houver mensagens
 ```
 A exceção junta **todas** as mensagens antes de lançar, então o usuário vê os 3 erros de uma vez, e não um por envio. Em Java, é como o Bean Validation devolvendo um conjunto de `ConstraintViolation`. A tela captura e mostra a lista com HTTP 422.
 
-## 3. Checagem de número duplicado (`src/Processo/ProcessoRN.php:55-60`)
+## 3. Checagem de número duplicado (`src/Autuacao/Processo/ProcessoRN.php:55-60`)
 ```php
 $filtro->setStrNumero($numero)->retNumIdProcesso();
 $this->bd()->consultar($filtro)
@@ -56,10 +56,10 @@ O `retNumIdProcesso()` limita o `SELECT` a uma coluna, que é só o necessário 
 
 **Ponto fino:** isso é um *check-then-act*. Duas requisições simultâneas com o mesmo número podem passar ambas pelo `SELECT` antes de qualquer `INSERT`. Quem garante de verdade é a constraint `ak_processo_numero UNIQUE` da migration: a segunda requisição leva uma `PDOException`, que o `__call` embrulha como "Erro em cadastrar." (uma mensagem menos amigável, mas sem duplicata no banco). A regra é: valide na aplicação para dar uma boa mensagem, e garanta no banco para ter consistência.
 
-## 4. Valores padrão (`src/Processo/ProcessoRN.php:62-70`)
+## 4. Valores padrão (`src/Autuacao/Processo/ProcessoRN.php:62-70`)
 `isSet` distingue "não informado" de "informado como `null`": só preenche o que a tela não mandou.
 
-## 5. O `INSERT` (`src/Nucleo/NucleoBD.php:77-96`)
+## 5. O `INSERT` (`src/Compartilhado/Nucleo/NucleoBD.php:77-96`)
 ```php
 foreach ($dto->valores() as $attr => $valor) {
     if ($attr === $pk && $valor === null) { continue; }   // deixa o AUTO_INCREMENT gerar o id
@@ -79,14 +79,14 @@ com `$params = [':numero' => '0000001-69.2026.8.19.0001', ...]`.
 - **Nomes de tabela e coluna** vêm do código (`getStrNomeTabela()` e `montar()`), **nunca** da entrada do usuário. Por isso podem ser concatenados.
 - **Valores** vão sempre por *bind*: os marcadores `:numero` são preenchidos pelo MySQL num prepared statement real (`EMULATE_PREPARES=false`).
 
-## 6. Execução e id gerado (`src/Nucleo/Banco.php:94-104`, `src/Nucleo/NucleoBD.php:94`)
+## 6. Execução e id gerado (`src/Compartilhado/Nucleo/Banco.php:94-104`, `src/Compartilhado/Nucleo/NucleoBD.php:94`)
 ```php
 $st = $this->pdo()->prepare($sql);  $st->execute($params);
 $dto->definirValor($pk, $this->banco->ultimoId());   // lastInsertId() -> NumIdProcesso
 ```
 O **mesmo objeto** `$dto` recebe o id e volta para a RN. Por isso a linha 75 da `ProcessoRN` consegue fazer `$dto->getNumIdProcesso()` logo depois. Em Java, é como o `entityManager.persist(entity)` preenchendo o `@Id` na própria entidade.
 
-## 7. O evento na mesma transação (`src/Processo/ProcessoRN.php:74-78`)
+## 7. O evento na mesma transação (`src/Autuacao/Processo/ProcessoRN.php:74-78`)
 `new EventoRN()->cadastrar($ev)` passa de novo pelo `__call`. O nível de transação vai para 2, não há `BEGIN`, e a `EventoRN` faz as próprias validações e o próprio `INSERT INTO evento`. Se o evento falhar, o processo também é desfeito: o `TransacaoTest::rollbackDesfazProcessoEEventoDeDistribuicao` prova isso.
 
 ## 8. Volta e commit
