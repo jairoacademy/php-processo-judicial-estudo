@@ -1,7 +1,7 @@
 # Imagem do PHP-FPM. Dois alvos (multi-stage):
 #   base: extensões de produção (pdo_mysql, intl, opcache, redis)
 #   dev:  base + Xdebug e usuário com o mesmo UID do host (arquivos montados ficam graváveis)
-FROM php:8.4-fpm-alpine AS base
+FROM php:8.6-fpm-alpine AS base
 
 # icu-libs fica na imagem final; icu-dev só existe durante a compilação do intl
 RUN apk add --no-cache icu-libs \
